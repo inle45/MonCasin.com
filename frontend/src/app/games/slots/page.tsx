@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
+import Navbar from '@/components/layout/Navbar';
 import api, { formatBalance } from '@/lib/api';
 import BigWinOverlay from '@/components/games/BigWinOverlay';
 import WheelOfFortune from '@/components/games/WheelOfFortune';
@@ -186,7 +186,6 @@ function getWinTier(mult: number): { label: string; couleur: string } | null {
 }
 
 export default function SlotsPage() {
-  const router = useRouter();
   const { user, updateUser } = useAuth();
   const { socket } = useSocket();
 
@@ -367,28 +366,20 @@ export default function SlotsPage() {
 
   return (
     <div className="min-h-screen bg-casino-dark text-white">
-      <div className="max-w-lg mx-auto px-3 py-4 flex flex-col gap-4">
+      <Navbar />
+      <div className="max-w-lg mx-auto px-3 pt-20 pb-8 flex flex-col gap-4">
 
-        {/* Header avec bouton retour */}
-        <div className="relative flex items-center justify-center">
-          <button
-            onClick={() => router.push('/games')}
-            className="absolute left-0 flex items-center gap-1 text-sm text-gray-400 hover:text-casino-gold transition-colors px-2 py-1 rounded-lg"
-            style={{ border: '1px solid rgba(245,158,11,0.2)' }}
+        {/* Titre + Jackpot */}
+        <div className="text-center">
+          <h1 className="text-2xl font-black text-casino-gold tracking-wide">🎰 Vegas Evolution</h1>
+          <motion.div
+            animate={{ scale: [1, 1.04, 1] }}
+            transition={{ duration: 1.6, repeat: Infinity }}
+            className="mt-1 text-xs font-bold"
+            style={{ color: '#fbbf24', textShadow: '0 0 14px rgba(245,158,11,0.9)' }}
           >
-            ← Retour
-          </button>
-          <div className="text-center">
-            <h1 className="text-2xl font-black text-casino-gold tracking-wide">🎰 Vegas Evolution</h1>
-            <motion.div
-              animate={{ scale: [1, 1.04, 1] }}
-              transition={{ duration: 1.6, repeat: Infinity }}
-              className="mt-1 text-xs font-bold"
-              style={{ color: '#fbbf24', textShadow: '0 0 14px rgba(245,158,11,0.9)' }}
-            >
-              JACKPOT : {jackpot.toLocaleString('fr-FR')} F€ 🏆
-            </motion.div>
-          </div>
+            JACKPOT PROGRESSIF : {jackpot.toLocaleString('fr-FR')} F€ 🏆
+          </motion.div>
         </div>
 
         {/* Bandeau Free Spins */}
