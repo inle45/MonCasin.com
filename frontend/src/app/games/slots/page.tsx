@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
-import { formatBalance, apiRequest } from '@/lib/api';
+import api, { formatBalance } from '@/lib/api';
 import BigWinOverlay from '@/components/games/BigWinOverlay';
 import WheelOfFortune from '@/components/games/WheelOfFortune';
 import ChestGame from '@/components/games/ChestGame';
@@ -176,8 +176,8 @@ function Rouleau({
 
 // ── Page principale ───────────────────────────────────────────────────────────
 export default function SlotsPage() {
-  const { user, updateBalance } = useAuth();
-  const socket = useSocket();
+  const { user, updateUser } = useAuth();
+  const { socket } = useSocket();
 
   const [grille, setGrille] = useState<string[][]>(grilleVide());
   const [mise, setMise] = useState(10);
@@ -222,8 +222,8 @@ export default function SlotsPage() {
   }, [socket]);
 
   useEffect(() => {
-    apiRequest('/games/slots/jackpot')
-      .then((d: { jackpot: number }) => setJackpot(d.jackpot))
+    api.get('/games/slots/jackpot')
+      .then(res => setJackpot(res.data.jackpot))
       .catch(() => {});
   }, []);
 
@@ -243,12 +243,10 @@ export default function SlotsPage() {
     clearTimers();
 
     try {
-      const data: SpinResult = await apiRequest('/games/slots/spin', {
-        method: 'POST',
-        body: JSON.stringify({ amount: mise }),
-      });
+      const res = await api.post('/games/slots/spin', { amount: mise });
+      const data: SpinResult = res.data;
 
-      updateBalance(data.newBalance);
+      updateUser({ balance: data.newBalance });
       setJackpot(data.jackpot);
 
       // Détecter scatters pour tease
@@ -307,13 +305,12 @@ export default function SlotsPage() {
                 setWheelResult(null);
                 setShowWheel(true);
                 setTimeout(() => {
-                  apiRequest('/games/slots/bonus/wheel', {
-                    method: 'POST',
-                    body: JSON.stringify({ amount: mise }),
-                  }).then((wr: WheelResult) => {
-                    setWheelResult(wr);
-                    updateBalance(wr.newBalance);
-                  }).catch(() => {});
+                  api.post('/games/slots/bonus/wheel', { amount: mise })
+                    .then(r => {
+                      const wr: WheelResult = r.data;
+                      setWheelResult(wr);
+                      updateUser({ balance: wr.newBalance });
+                    }).catch(() => {});
                 }, 800);
               } else if (data.bonus.type === 'CHEST_GAME') {
                 setChestData({
@@ -333,15 +330,13 @@ export default function SlotsPage() {
       setSpinning(false);
       setStoppedReels([true, true, true, true, true]);
     }
-  }, [spinning, user, enModeFreeSpin, mise, updateBalance]);
+  }, [spinning, user, enModeFreeSpin, mise, updateUser]);
 
   const handleOpenChest = useCallback(async (indexCoffre: number) => {
     try {
-      const data: ChestResult = await apiRequest('/games/slots/bonus/chest', {
-        method: 'POST',
-        body: JSON.stringify({ indexCoffre }),
-      });
-      updateBalance(data.newBalance);
+      const res = await api.post('/games/slots/bonus/chest', { indexCoffre });
+      const data: ChestResult = res.data;
+      updateUser({ balance: data.newBalance });
       setChestData({
         coffres: data.coffres,
         gainTotal: data.gainTotal,
@@ -349,7 +344,7 @@ export default function SlotsPage() {
         termine: data.termine,
       });
     } catch {}
-  }, [mise, updateBalance]);
+  }, [mise, updateUser]);
 
   const allStopped = stoppedReels.every(Boolean);
 
