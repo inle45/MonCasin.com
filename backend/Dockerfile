@@ -9,7 +9,7 @@ COPY prisma ./prisma
 RUN npx prisma generate
 
 COPY src ./src
-COPY public ./public 2>/dev/null || true
+COPY public ./public
 
 RUN mkdir -p src/uploads
 
