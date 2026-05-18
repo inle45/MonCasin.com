@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: #0a0a0f;
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+:root {
+  --casino-dark: #0a0a0f;
+  --casino-card: #12121f;
+  --casino-border: #1e1e35;
+  --casino-gold: #f59e0b;
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #12121f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2d2d4a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #f59e0b;
+}
+
+/* Animations du jeu Crash */
+.crash-canvas {
+  background: radial-gradient(ellipse at center, #0d1f0d 0%, #050a05 100%);
+}
+
+/* Machine à sous */
+.slot-reel {
+  overflow: hidden;
+  position: relative;
+}
+
+.slot-symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  height: 5rem;
+  transition: transform 0.1s ease;
+}
+
+/* Roulette */
+@keyframes roulette-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(1440deg); }
+}
+
+.roulette-wheel-spinning {
+  animation: roulette-spin 4s cubic-bezier(0.2, 0, 0.1, 1) forwards;
+}
+
+/* Bordures d'avatar */
+.border-flame {
+  border: 3px solid transparent;
+  background: linear-gradient(#12121f, #12121f) padding-box,
+              linear-gradient(135deg, #ef4444, #f97316, #ef4444) border-box;
+  animation: pulse-flame 1s ease-in-out infinite;
+}
+
+@keyframes pulse-flame {
+  0%, 100% { box-shadow: 0 0 8px #ef4444, 0 0 16px #f97316; }
+  50% { box-shadow: 0 0 16px #ef4444, 0 0 32px #f97316; }
+}
+
+.border-neon {
+  border: 3px solid transparent;
+  background: linear-gradient(#12121f, #12121f) padding-box,
+              linear-gradient(135deg, #8b5cf6, #3b82f6, #8b5cf6) border-box;
+  animation: pulse-neon 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-neon {
+  0%, 100% { box-shadow: 0 0 8px #8b5cf6; }
+  50% { box-shadow: 0 0 20px #8b5cf6, 0 0 40px #3b82f6; }
+}
+
+.border-diamond {
+  border: 3px solid transparent;
+  background: linear-gradient(#12121f, #12121f) padding-box,
+              linear-gradient(135deg, #a8edea, #fed6e3, #a8edea) border-box;
+  animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { box-shadow: 0 0 10px #a8edea; }
+  50% { box-shadow: 0 0 20px #fed6e3, 0 0 40px #a8edea; }
+  100% { box-shadow: 0 0 10px #a8edea; }
+}
+
+/* Animation de gain */
+@keyframes win-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.win-animation {
+  animation: win-flash 0.5s ease-in-out 3;
+}
+
+/* Gradient texte or */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Card de casino */
+.casino-card {
+  background: linear-gradient(145deg, #12121f, #1a1a2e);
+  border: 1px solid #1e1e35;
+  border-radius: 12px;
+}

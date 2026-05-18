@@ -1,0 +1,56 @@
+require('dotenv').config();
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const cors = require('cors');
+const path = require('path');
+
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const shopRoutes = require('./routes/shop');
+const gameRoutes = require('./routes/games');
+const { initSocket } = require('./socket/index');
+
+const app = express();
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Servir les fichiers statiques (avatars uploadés)
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api/avatars', express.static(path.join(__dirname, '../public/avatars')));
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/shop', shopRoutes);
+app.use('/api/games', gameRoutes);
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Initialisation Socket.io
+initSocket(io);
+
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => {
+  console.log(`🎰 MonCasin.com Backend démarré sur le port ${PORT}`);
+  console.log(`🌐 CORS autorisé pour : ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+});
+
+module.exports = { app, server, io };

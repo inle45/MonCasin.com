@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  pseudo        String    @unique
+  password      String
+  avatar        String?
+  balance       Float     @default(10000)
+  role          Role      @default(PLAYER)
+  grade         Grade     @default(NONE)
+  avatarBorder  String?
+  pseudoColor   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  bets          Bet[]
+  chatMessages  ChatMessage[]
+  transactions  Transaction[]
+  purchases     ShopPurchase[]
+
+  @@map("users")
+}
+
+model Bet {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  game        GameType
+  amount      Float
+  multiplier  Float?
+  result      Float?
+  won         Boolean?
+  details     Json?
+  createdAt   DateTime  @default(now())
+
+  @@map("bets")
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  type        TransactionType
+  amount      Float
+  description String
+  createdAt   DateTime        @default(now())
+
+  @@map("transactions")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+
+  @@map("chat_messages")
+}
+
+model ShopItem {
+  id          String     @id @default(uuid())
+  name        String
+  description String
+  type        ShopItemType
+  value       String
+  price       Float
+  imageUrl    String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+
+  purchases   ShopPurchase[]
+
+  @@map("shop_items")
+}
+
+model ShopPurchase {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  itemId     String
+  item       ShopItem @relation(fields: [itemId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@map("shop_purchases")
+}
+
+enum Role {
+  PLAYER
+  VIP
+  ADMIN
+}
+
+enum Grade {
+  NONE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+}
+
+enum GameType {
+  CRASH
+  ROULETTE
+  SLOTS
+}
+
+enum TransactionType {
+  BET
+  WIN
+  PURCHASE
+  DEPOSIT
+  BONUS
+}
+
+enum ShopItemType {
+  GRADE
+  AVATAR_BORDER
+  PSEUDO_COLOR
+}
