@@ -12,7 +12,12 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  /* Fond ambiance profonde : lueurs bleu-nuit et violet sur fond noir */
   background-color: #0a0a0f;
+  background-image:
+    radial-gradient(ellipse at 15% 60%, rgba(59, 130, 246, 0.05) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 15%, rgba(139, 92, 246, 0.05) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(245, 158, 11, 0.03) 0%, transparent 50%);
   color: #ffffff;
   font-family: 'Inter', system-ui, sans-serif;
 }
@@ -24,31 +29,40 @@ body {
   --casino-gold: #f59e0b;
 }
 
-/* Scrollbar personnalisée */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #12121f; }
+::-webkit-scrollbar-thumb { background: #2d2d4a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+
+/* ── Card casino — fond radial pour la profondeur ──────── */
+.casino-card {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(245, 158, 11, 0.025) 0%, transparent 65%),
+    linear-gradient(145deg, #12121f 0%, #1a1a2e 100%);
+  border: 1px solid #1e1e35;
+  border-radius: 12px;
+  position: relative;
 }
 
-::-webkit-scrollbar-track {
-  background: #12121f;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #2d2d4a;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #f59e0b;
-}
-
-/* Animations du jeu Crash */
+/* ── Crash Canvas ───────────────────────────────────────── */
 .crash-canvas {
-  background: radial-gradient(ellipse at center, #0d1f0d 0%, #050a05 100%);
+  background: transparent;
 }
 
-/* Machine à sous */
+/* Flash rouge + secousse au crash */
+.crash-crashed-card {
+  animation: crashFlash 0.6s ease-out forwards;
+}
+
+@keyframes crashFlash {
+  0%   { border-color: #1e1e35; box-shadow: none; }
+  15%  { border-color: #ef4444; box-shadow: inset 0 0 50px rgba(239,68,68,0.35), 0 0 25px rgba(239,68,68,0.4); }
+  40%  { border-color: #ef4444; box-shadow: inset 0 0 70px rgba(239,68,68,0.5), 0 0 35px rgba(239,68,68,0.5); }
+  100% { border-color: #3f0f0f; box-shadow: inset 0 0 20px rgba(239,68,68,0.1); }
+}
+
+/* ── Machine à sous ─────────────────────────────────────── */
 .slot-reel {
   overflow: hidden;
   position: relative;
@@ -63,17 +77,72 @@ body {
   transition: transform 0.1s ease;
 }
 
-/* Roulette */
+/* Confettis de victoire */
+.confetti-piece {
+  position: absolute;
+  border-radius: 2px;
+  animation: confettiFall 1.1s ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes confettiFall {
+  0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  80%  { opacity: 0.8; }
+  100% { transform: translateY(140px) rotate(420deg); opacity: 0; }
+}
+
+/* Rebond élastique rouleau */
+@keyframes bounceIn {
+  0%   { transform: scaleY(0.72) scaleX(1.08); opacity: 0.6; }
+  55%  { transform: scaleY(1.09) scaleX(0.97); }
+  75%  { transform: scaleY(0.97) scaleX(1.01); }
+  90%  { transform: scaleY(1.02) scaleX(0.99); }
+  100% { transform: scaleY(1) scaleX(1); opacity: 1; }
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* ── Roulette ───────────────────────────────────────────── */
 @keyframes roulette-spin {
   from { transform: rotate(0deg); }
-  to { transform: rotate(1440deg); }
+  to   { transform: rotate(1440deg); }
 }
 
 .roulette-wheel-spinning {
   animation: roulette-spin 4s cubic-bezier(0.2, 0, 0.1, 1) forwards;
 }
 
-/* Bordures d'avatar */
+/* Case de mise avec transition scale + luminosité */
+.roulette-cell {
+  transition: transform 0.1s ease, filter 0.1s ease, box-shadow 0.15s ease;
+  position: relative;
+}
+
+.roulette-cell:hover:not(:disabled) {
+  transform: scale(1.06);
+  filter: brightness(1.35);
+  z-index: 2;
+}
+
+.roulette-cell:active:not(:disabled) {
+  transform: scale(0.93);
+  filter: brightness(1.55);
+}
+
+/* Puce de joueur sur le tapis */
+.player-chip {
+  animation: chipPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+@keyframes chipPop {
+  0%   { transform: scale(0); opacity: 0; }
+  70%  { transform: scale(1.25); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Bordures avatar ────────────────────────────────────── */
 .border-flame {
   border: 3px solid transparent;
   background: linear-gradient(#12121f, #12121f) padding-box,
@@ -83,7 +152,7 @@ body {
 
 @keyframes pulse-flame {
   0%, 100% { box-shadow: 0 0 8px #ef4444, 0 0 16px #f97316; }
-  50% { box-shadow: 0 0 16px #ef4444, 0 0 32px #f97316; }
+  50%       { box-shadow: 0 0 16px #ef4444, 0 0 32px #f97316; }
 }
 
 .border-neon {
@@ -95,7 +164,7 @@ body {
 
 @keyframes pulse-neon {
   0%, 100% { box-shadow: 0 0 8px #8b5cf6; }
-  50% { box-shadow: 0 0 20px #8b5cf6, 0 0 40px #3b82f6; }
+  50%       { box-shadow: 0 0 20px #8b5cf6, 0 0 40px #3b82f6; }
 }
 
 .border-diamond {
@@ -106,22 +175,22 @@ body {
 }
 
 @keyframes shimmer {
-  0% { box-shadow: 0 0 10px #a8edea; }
-  50% { box-shadow: 0 0 20px #fed6e3, 0 0 40px #a8edea; }
+  0%   { box-shadow: 0 0 10px #a8edea; }
+  50%  { box-shadow: 0 0 20px #fed6e3, 0 0 40px #a8edea; }
   100% { box-shadow: 0 0 10px #a8edea; }
 }
 
-/* Animation de gain */
+/* ── Animation de gain ──────────────────────────────────── */
 @keyframes win-flash {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  50%       { opacity: 0.5; }
 }
 
 .win-animation {
   animation: win-flash 0.5s ease-in-out 3;
 }
 
-/* Gradient texte or */
+/* ── Gradient texte or ──────────────────────────────────── */
 .text-gradient-gold {
   background: linear-gradient(135deg, #f59e0b, #fbbf24, #f59e0b);
   -webkit-background-clip: text;
@@ -129,9 +198,30 @@ body {
   background-clip: text;
 }
 
-/* Card de casino */
-.casino-card {
-  background: linear-gradient(145deg, #12121f, #1a1a2e);
-  border: 1px solid #1e1e35;
-  border-radius: 12px;
+/* ── Glow utilitaires ───────────────────────────────────── */
+.glow-gold   { box-shadow: 0 0 20px rgba(245,158,11,0.45), 0 0 40px rgba(245,158,11,0.2); }
+.glow-green  { box-shadow: 0 0 20px rgba(16,185,129,0.45), 0 0 40px rgba(16,185,129,0.2); }
+.glow-red    { box-shadow: 0 0 20px rgba(239,68,68,0.45), 0 0 40px rgba(239,68,68,0.2); }
+
+/* Bouton principal gold */
+.btn-gold-glow {
+  box-shadow: 0 0 18px rgba(245,158,11,0.4);
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+.btn-gold-glow:hover {
+  box-shadow: 0 0 32px rgba(245,158,11,0.65), 0 0 55px rgba(245,158,11,0.3);
+  transform: translateY(-1px) scale(1.015);
+}
+.btn-gold-glow:active {
+  transform: scale(0.96);
+  box-shadow: 0 0 12px rgba(245,158,11,0.3);
+}
+
+/* Bouton cashout green */
+.btn-green-glow {
+  box-shadow: 0 0 18px rgba(16,185,129,0.4);
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+.btn-green-glow:hover {
+  box-shadow: 0 0 32px rgba(16,185,129,0.65), 0 0 55px rgba(16,185,129,0.3);
 }

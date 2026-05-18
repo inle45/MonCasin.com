@@ -219,6 +219,13 @@ function initSocket(io) {
       })).balance;
 
       socket.emit('roulette:bet_confirmed', { totalBet, newBalance });
+
+      // Broadcast aux autres joueurs pour afficher les jetons sur le tapis
+      io.to('roulette').emit('roulette:bet_placed', {
+        userId: user.id,
+        pseudo: user.pseudo,
+        bets,
+      });
     });
 
     socket.on('disconnect', () => {

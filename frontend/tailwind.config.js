@@ -21,6 +21,14 @@ module.exports = {
           blue: '#3b82f6',
         },
       },
+      boxShadow: {
+        'glow-gold': '0 0 20px rgba(245,158,11,0.45), 0 0 40px rgba(245,158,11,0.2)',
+        'glow-gold-lg': '0 0 30px rgba(245,158,11,0.6), 0 0 60px rgba(245,158,11,0.3)',
+        'glow-green': '0 0 20px rgba(16,185,129,0.45), 0 0 40px rgba(16,185,129,0.2)',
+        'glow-red': '0 0 20px rgba(239,68,68,0.45), 0 0 40px rgba(239,68,68,0.2)',
+        'glow-purple': '0 0 20px rgba(139,92,246,0.45), 0 0 40px rgba(139,92,246,0.2)',
+        'inner-crash': 'inset 0 0 60px rgba(239,68,68,0.35), 0 0 30px rgba(239,68,68,0.3)',
+      },
       animation: {
         'spin-slow': 'spin 3s linear infinite',
         'pulse-gold': 'pulse-gold 2s ease-in-out infinite',
@@ -29,6 +37,12 @@ module.exports = {
         'reel-spin': 'reelSpin 0.5s ease-out',
         'crash-line': 'crashLine 0.1s linear',
         'rainbow': 'rainbow 3s linear infinite',
+        'screen-shake': 'screenShake 0.55s cubic-bezier(.36,.07,.19,.97)',
+        'bounce-in': 'bounceIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+        'confetti-fall': 'confettiFall 1.1s ease-in forwards',
+        'chip-pop': 'chipPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        'win-pulse': 'winPulse 0.6s ease-in-out 3',
+        'crash-flash': 'crashFlash 0.6s ease-out',
       },
       keyframes: {
         'pulse-gold': {
@@ -51,6 +65,45 @@ module.exports = {
           '66%': { color: '#3b82f6' },
           '83%': { color: '#8b5cf6' },
           '100%': { color: '#ef4444' },
+        },
+        screenShake: {
+          '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+          '10%': { transform: 'translate(-4px, -3px) rotate(-0.4deg)' },
+          '20%': { transform: 'translate(4px, 3px) rotate(0.4deg)' },
+          '30%': { transform: 'translate(-4px, 2px) rotate(0deg)' },
+          '40%': { transform: 'translate(4px, -2px) rotate(0.3deg)' },
+          '50%': { transform: 'translate(-3px, 3px) rotate(-0.3deg)' },
+          '60%': { transform: 'translate(3px, 2px) rotate(0deg)' },
+          '70%': { transform: 'translate(-2px, -2px) rotate(0.2deg)' },
+          '80%': { transform: 'translate(2px, 1px) rotate(-0.2deg)' },
+          '90%': { transform: 'translate(-1px, 0px) rotate(0deg)' },
+        },
+        bounceIn: {
+          '0%': { transform: 'scaleY(0.75) scaleX(1.08)', opacity: '0.6' },
+          '55%': { transform: 'scaleY(1.08) scaleX(0.97)' },
+          '75%': { transform: 'scaleY(0.97) scaleX(1.01)' },
+          '90%': { transform: 'scaleY(1.02) scaleX(0.99)' },
+          '100%': { transform: 'scaleY(1) scaleX(1)', opacity: '1' },
+        },
+        confettiFall: {
+          '0%': { transform: 'translateY(-10px) rotate(0deg)', opacity: '1' },
+          '80%': { opacity: '0.8' },
+          '100%': { transform: 'translateY(130px) rotate(400deg)', opacity: '0' },
+        },
+        chipPop: {
+          '0%': { transform: 'scale(0)', opacity: '0' },
+          '70%': { transform: 'scale(1.2)' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        winPulse: {
+          '0%, 100%': { boxShadow: '0 0 8px rgba(245,158,11,0.4)' },
+          '50%': { boxShadow: '0 0 30px rgba(245,158,11,0.8), 0 0 60px rgba(245,158,11,0.4)' },
+        },
+        crashFlash: {
+          '0%': { borderColor: '#1e1e35', boxShadow: 'none' },
+          '15%': { borderColor: '#ef4444', boxShadow: 'inset 0 0 50px rgba(239,68,68,0.35), 0 0 25px rgba(239,68,68,0.4)' },
+          '40%': { borderColor: '#ef4444', boxShadow: 'inset 0 0 70px rgba(239,68,68,0.5), 0 0 35px rgba(239,68,68,0.5)' },
+          '100%': { borderColor: '#3f0f0f', boxShadow: 'inset 0 0 20px rgba(239,68,68,0.1)' },
         },
       },
       backgroundImage: {
