@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const shopRoutes = require('./routes/shop');
 const gameRoutes = require('./routes/games');
+const bonusRoutes = require('./routes/bonuses');
 const { initSocket } = require('./socket/index');
 
 const app = express();
@@ -43,6 +44,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/games', gameRoutes);
+app.use('/api/bonuses', bonusRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

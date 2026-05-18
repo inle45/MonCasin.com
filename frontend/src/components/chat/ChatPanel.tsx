@@ -55,26 +55,32 @@ export default function ChatPanel({ initialMessages = [] }: { initialMessages?: 
           <p className="text-gray-500 text-xs text-center mt-4">Aucun message. Soyez le premier !</p>
         )}
         {messages.map((msg) => (
-          <div key={msg.id} className="flex gap-2 text-sm animate-slide-up">
-            <img
-              src={msg.avatar || '/avatars/default-1.png'}
-              alt={msg.pseudo}
-              className="w-6 h-6 rounded-full flex-shrink-0 mt-0.5"
-              onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.png'; }}
-            />
-            <div className="min-w-0">
-              <span className="font-medium" style={{ color: msg.pseudoColor && msg.pseudoColor !== 'rainbow' ? msg.pseudoColor : undefined }}>
-                {msg.grade !== 'NONE' && GRADE_BADGES[msg.grade] && (
-                  <span className="mr-1 text-xs">{GRADE_BADGES[msg.grade]}</span>
-                )}
-                <span className={clsx(msg.pseudoColor === 'rainbow' && 'animate-rainbow')}>
-                  {msg.pseudo}
-                </span>
-              </span>
-              <span className="text-gray-500 mx-1">:</span>
-              <span className="text-gray-300 break-words">{msg.content}</span>
+          (msg as unknown as { isSystem?: boolean }).isSystem ? (
+            <div key={msg.id} className="text-xs text-center text-casino-gold/80 py-1 px-2 bg-casino-gold/5 rounded animate-slide-up">
+              {msg.content}
             </div>
-          </div>
+          ) : (
+            <div key={msg.id} className="flex gap-2 text-sm animate-slide-up">
+              <img
+                src={msg.avatar || '/avatars/default-1.png'}
+                alt={msg.pseudo}
+                className="w-6 h-6 rounded-full flex-shrink-0 mt-0.5"
+                onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.png'; }}
+              />
+              <div className="min-w-0">
+                <span className="font-medium" style={{ color: msg.pseudoColor && msg.pseudoColor !== 'rainbow' ? msg.pseudoColor : undefined }}>
+                  {msg.grade !== 'NONE' && GRADE_BADGES[msg.grade] && (
+                    <span className="mr-1 text-xs">{GRADE_BADGES[msg.grade]}</span>
+                  )}
+                  <span className={clsx(msg.pseudoColor === 'rainbow' && 'animate-rainbow')}>
+                    {msg.pseudo}
+                  </span>
+                </span>
+                <span className="text-gray-500 mx-1">:</span>
+                <span className="text-gray-300 break-words">{msg.content}</span>
+              </div>
+            </div>
+          )
         ))}
         <div ref={bottomRef} />
       </div>
@@ -84,7 +90,7 @@ export default function ChatPanel({ initialMessages = [] }: { initialMessages?: 
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder="Message..."
+          placeholder="Message... ou /pay <pseudo> <montant>"
           maxLength={500}
           className="flex-1 bg-casino-darker border border-casino-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-casino-gold"
         />

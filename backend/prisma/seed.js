@@ -91,6 +91,49 @@ const shopItems = [
   },
 ];
 
+const achievements = [
+  {
+    id: 'chasseur-multiplicateurs',
+    key: 'chasseur_multiplicateurs',
+    name: '👨‍🚀 Astronaute',
+    description: 'Cash out au Crash à 50x ou plus',
+    icon: '🚀',
+    reward: 0,
+  },
+  {
+    id: 'all-in-reussi',
+    key: 'all_in_reussi',
+    name: '🎯 All-In Réussi',
+    description: 'Miser tout ton solde (min 10 000 F€) sur rouge/noir à la roulette et gagner',
+    icon: '🎯',
+    reward: 0,
+  },
+  {
+    id: 'chat-noir',
+    key: 'chat_noir',
+    name: '🐱 Chat Noir',
+    description: 'Crash arrive à 1.00x trois fois de suite',
+    icon: '🐱‍👤',
+    reward: 0,
+  },
+  {
+    id: 'premier-gain',
+    key: 'premier_gain',
+    name: '🌟 Premier Gain',
+    description: 'Gagner pour la première fois sur n\'importe quel jeu',
+    icon: '⭐',
+    reward: 500,
+  },
+  {
+    id: 'riche-a-millions',
+    key: 'riche_a_millions',
+    name: '💎 Millionnaire',
+    description: 'Atteindre un solde de 100 000 F€',
+    icon: '💎',
+    reward: 5000,
+  },
+];
+
 async function main() {
   console.log('🎰 Démarrage du seed de la base de données...');
 
@@ -119,6 +162,15 @@ async function main() {
       },
     });
     console.log(`🛒 Article de boutique créé : ${item.name} - ${item.price} F€`);
+  }
+
+  for (const ach of achievements) {
+    await prisma.achievement.upsert({
+      where: { id: ach.id },
+      update: { name: ach.name, description: ach.description, icon: ach.icon },
+      create: ach,
+    });
+    console.log(`🏆 Succès créé : ${ach.name}`);
   }
 
   console.log('✨ Seed terminé avec succès !');

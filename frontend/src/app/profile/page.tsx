@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/layout/Navbar';
@@ -9,6 +9,14 @@ import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 import { Camera, User } from 'lucide-react';
+
+interface AdvancedStats {
+  bestWin: { profit: number; game: string; multiplier: number | null; date: string } | null;
+  worstStreak: number;
+  totalWagered: number;
+  totalGames: number;
+  winRate: string;
+}
 
 const GRADE_INFO: Record<string, { label: string; color: string; icon: string }> = {
   NONE: { label: 'Joueur', color: 'text-gray-400', icon: '👤' },
@@ -27,6 +35,12 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [pseudo, setPseudo] = useState(user?.pseudo || '');
   const [savingPseudo, setSavingPseudo] = useState(false);
+  const [advStats, setAdvStats] = useState<AdvancedStats | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    api.get('/games/stats').then(res => setAdvStats(res.data.advanced)).catch(() => {});
+  }, [user]);
 
   if (!isLoading && !user) { router.push('/login'); return null; }
   if (!user) return null;
@@ -155,6 +169,38 @@ export default function ProfilePage() {
               ))}
             </div>
           </div>
+
+          {/* Stats avancées */}
+          {advStats && (
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-400 mb-3">Statistiques avancées</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-casino-darker rounded-lg p-3 text-center">
+                  <div className="text-green-400 font-bold text-lg">
+                    {advStats.bestWin ? `+${formatBalance(advStats.bestWin.profit)}` : '—'}
+                  </div>
+                  <div className="text-gray-500 text-xs mt-0.5">
+                    Meilleur gain
+                    {advStats.bestWin && (
+                      <span className="text-gray-600"> ({advStats.bestWin.game})</span>
+                    )}
+                  </div>
+                </div>
+                <div className="bg-casino-darker rounded-lg p-3 text-center">
+                  <div className="text-red-400 font-bold text-lg">{advStats.worstStreak}x</div>
+                  <div className="text-gray-500 text-xs mt-0.5">Pire série de pertes</div>
+                </div>
+                <div className="bg-casino-darker rounded-lg p-3 text-center">
+                  <div className="text-white font-bold text-lg">{formatBalance(advStats.totalWagered)}</div>
+                  <div className="text-gray-500 text-xs mt-0.5">Total misé</div>
+                </div>
+                <div className="bg-casino-darker rounded-lg p-3 text-center">
+                  <div className="text-casino-gold font-bold text-lg">{advStats.winRate}%</div>
+                  <div className="text-gray-500 text-xs mt-0.5">Taux de victoire ({advStats.totalGames} parties)</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Modifier le pseudo */}
           <div>

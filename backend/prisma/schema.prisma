@@ -21,10 +21,15 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  bets          Bet[]
-  chatMessages  ChatMessage[]
-  transactions  Transaction[]
-  purchases     ShopPurchase[]
+  bets              Bet[]
+  chatMessages      ChatMessage[]
+  transactions      Transaction[]
+  purchases         ShopPurchase[]
+  achievements      UserAchievement[]
+  dailySpins        DailySpin[]
+  bailoutUsages     BailoutUsage[]
+  loansGiven        Loan[]           @relation("LoanLender")
+  loansTaken        Loan[]           @relation("LoanBorrower")
 
   @@map("users")
 }
@@ -119,10 +124,77 @@ enum TransactionType {
   PURCHASE
   DEPOSIT
   BONUS
+  DAILY_SPIN
+  BAILOUT
+  LOAN
+  REPAYMENT
+  TRANSFER
 }
 
 enum ShopItemType {
   GRADE
   AVATAR_BORDER
   PSEUDO_COLOR
+}
+
+model Achievement {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  name        String
+  description String
+  icon        String
+  reward      Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  earnedAt      DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model DailySpin {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  reward    Float
+  spunAt    DateTime @default(now())
+
+  @@map("daily_spins")
+}
+
+model BailoutUsage {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Float    @default(1000)
+  usedAt    DateTime @default(now())
+
+  @@map("bailout_usages")
+}
+
+model Loan {
+  id           String    @id @default(uuid())
+  borrowerId   String
+  borrower     User      @relation("LoanBorrower", fields: [borrowerId], references: [id])
+  lenderId     String?
+  lender       User?     @relation("LoanLender", fields: [lenderId], references: [id])
+  amount       Float
+  amountDue    Float
+  repaid       Boolean   @default(false)
+  isStateLoan  Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  repaidAt     DateTime?
+
+  @@map("loans")
 }

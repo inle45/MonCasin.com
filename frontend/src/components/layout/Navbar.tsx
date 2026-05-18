@@ -37,6 +37,7 @@ export default function Navbar() {
     { href: '/games/roulette', label: 'Roulette', icon: () => <span className="text-base">🎡</span> },
     { href: '/games/slots', label: 'Slots', icon: () => <span className="text-base">🎰</span> },
     { href: '/shop', label: 'Boutique', icon: ShoppingBag },
+    { href: '/bonuses', label: 'Bonus', icon: () => <span className="text-base">🎁</span> },
   ];
 
   return (

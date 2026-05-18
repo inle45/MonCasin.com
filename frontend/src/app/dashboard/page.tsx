@@ -118,18 +118,31 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Boutique */}
-            <Link href="/shop">
-              <div className="casino-card p-5 bg-gradient-to-r from-casino-gold/10 to-transparent border border-casino-gold/20 hover:scale-[1.01] transition-transform cursor-pointer">
-                <div className="flex items-center gap-4">
-                  <ShoppingBag className="w-10 h-10 text-casino-gold" />
-                  <div>
-                    <h3 className="text-lg font-bold text-white">Boutique VIP</h3>
-                    <p className="text-gray-400 text-sm">Achète des grades, bordures et couleurs de pseudo avec tes F€</p>
+            {/* Boutique + Bonus en ligne */}
+            <div className="grid grid-cols-2 gap-4">
+              <Link href="/shop">
+                <div className="casino-card p-4 bg-gradient-to-r from-casino-gold/10 to-transparent border border-casino-gold/20 hover:scale-[1.01] transition-transform cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <ShoppingBag className="w-8 h-8 text-casino-gold flex-shrink-0" />
+                    <div>
+                      <h3 className="font-bold text-white">Boutique VIP</h3>
+                      <p className="text-gray-400 text-xs">Grades, bordures, couleurs</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+              <Link href="/bonuses">
+                <div className="casino-card p-4 bg-gradient-to-r from-purple-500/10 to-transparent border border-purple-500/20 hover:scale-[1.01] transition-transform cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl flex-shrink-0">🎁</span>
+                    <div>
+                      <h3 className="font-bold text-white">Bonus & Succès</h3>
+                      <p className="text-gray-400 text-xs">Roue, aide, prêts, succès</p>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </div>
           </div>
 
           {/* Colonne droite : Chat + Leaderboard */}
