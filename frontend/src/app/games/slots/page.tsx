@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import api, { formatBalance } from '@/lib/api';
@@ -175,7 +176,17 @@ function Rouleau({
 }
 
 // ── Page principale ───────────────────────────────────────────────────────────
+// Niveau de gain selon multiplicateur total
+function getWinTier(mult: number): { label: string; couleur: string } | null {
+  if (mult <= 0) return null;
+  if (mult < 5)  return { label: 'MINI WIN',  couleur: '#6b7280' };
+  if (mult < 10) return { label: 'MINOR WIN', couleur: '#3b82f6' };
+  if (mult < 20) return { label: 'MAJOR WIN', couleur: '#8b5cf6' };
+  return               { label: 'GRAND WIN', couleur: '#f59e0b' };
+}
+
 export default function SlotsPage() {
+  const router = useRouter();
   const { user, updateUser } = useAuth();
   const { socket } = useSocket();
 
@@ -186,6 +197,8 @@ export default function SlotsPage() {
   const [lignesGagnantes, setLignesGagnantes] = useState<LigneGagnante[]>([]);
   const [jackpot, setJackpot] = useState(50000);
   const [teasing, setTeasing] = useState(false);
+  const [lastGain, setLastGain] = useState<number | null>(null);
+  const [lastMult, setLastMult] = useState(0);
 
   // Free spins
   const [enModeFreeSpin, setEnModeFreeSpin] = useState(false);
@@ -240,6 +253,8 @@ export default function SlotsPage() {
     setStoppedReels([false, false, false, false, false]);
     setLignesGagnantes([]);
     setTeasing(false);
+    setLastGain(null);
+    setLastMult(0);
     clearTimers();
 
     try {
@@ -273,6 +288,8 @@ export default function SlotsPage() {
             setSpinning(false);
             setTeasing(false);
             setLignesGagnantes(data.lignesGagnantes);
+            setLastGain(data.gainTotal > 0 ? data.gainTotal : null);
+            setLastMult(data.multiplicateurTotal);
 
             if (data.estFreeSpin) {
               setFreeSpinsRestants(data.spinsRestants ?? 0);
@@ -352,17 +369,26 @@ export default function SlotsPage() {
     <div className="min-h-screen bg-casino-dark text-white">
       <div className="max-w-lg mx-auto px-3 py-4 flex flex-col gap-4">
 
-        {/* Titre + Jackpot */}
-        <div className="text-center">
-          <h1 className="text-2xl font-black text-casino-gold tracking-wide">🎰 Vegas Evolution</h1>
-          <motion.div
-            animate={{ scale: [1, 1.04, 1] }}
-            transition={{ duration: 1.6, repeat: Infinity }}
-            className="mt-1 text-sm font-bold"
-            style={{ color: '#fbbf24', textShadow: '0 0 14px rgba(245,158,11,0.9)' }}
+        {/* Header avec bouton retour */}
+        <div className="relative flex items-center justify-center">
+          <button
+            onClick={() => router.push('/games')}
+            className="absolute left-0 flex items-center gap-1 text-sm text-gray-400 hover:text-casino-gold transition-colors px-2 py-1 rounded-lg"
+            style={{ border: '1px solid rgba(245,158,11,0.2)' }}
           >
-            JACKPOT PROGRESSIF : {jackpot.toLocaleString('fr-FR')} F€ 🏆
-          </motion.div>
+            ← Retour
+          </button>
+          <div className="text-center">
+            <h1 className="text-2xl font-black text-casino-gold tracking-wide">🎰 Vegas Evolution</h1>
+            <motion.div
+              animate={{ scale: [1, 1.04, 1] }}
+              transition={{ duration: 1.6, repeat: Infinity }}
+              className="mt-1 text-xs font-bold"
+              style={{ color: '#fbbf24', textShadow: '0 0 14px rgba(245,158,11,0.9)' }}
+            >
+              JACKPOT : {jackpot.toLocaleString('fr-FR')} F€ 🏆
+            </motion.div>
+          </div>
         </div>
 
         {/* Bandeau Free Spins */}
@@ -408,18 +434,56 @@ export default function SlotsPage() {
             ))}
           </div>
 
-          {/* Message résultat */}
-          <div className="min-h-6 mt-3 text-center">
+          {/* Résultat — niveau de gain + montant */}
+          <div className="min-h-14 mt-3 flex flex-col items-center justify-center gap-1">
             <AnimatePresence mode="wait">
-              {allStopped && lignesGagnantes.length > 0 && (
+              {allStopped && lastGain !== null && lastGain > 0 && (() => {
+                const tier = getWinTier(lastMult);
+                return (
+                  <motion.div
+                    key={`gain-${lastGain}`}
+                    initial={{ opacity: 0, scale: 0.7, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ type: 'spring', stiffness: 280 }}
+                    className="flex flex-col items-center gap-0.5"
+                  >
+                    {tier && (
+                      <div
+                        className="text-xs font-black tracking-widest px-3 py-0.5 rounded-full"
+                        style={{
+                          background: `${tier.couleur}22`,
+                          color: tier.couleur,
+                          border: `1px solid ${tier.couleur}`,
+                          textShadow: `0 0 8px ${tier.couleur}`,
+                        }}
+                      >
+                        {tier.label}
+                      </div>
+                    )}
+                    <motion.div
+                      animate={{ scale: [1, 1.06, 1] }}
+                      transition={{ duration: 0.8, repeat: 3 }}
+                      className="text-2xl font-black text-green-400"
+                      style={{ textShadow: '0 0 12px rgba(74,222,128,0.7)' }}
+                    >
+                      +{formatBalance(lastGain)}
+                    </motion.div>
+                    <div className="text-xs text-gray-500">
+                      ×{lastMult.toFixed(1)} — {lignesGagnantes.length} ligne{lignesGagnantes.length > 1 ? 's' : ''}
+                    </div>
+                  </motion.div>
+                );
+              })()}
+              {allStopped && (lastGain === null || lastGain === 0) && !spinning && (
                 <motion.div
-                  key="gain"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  key="noop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-green-400 font-bold text-sm"
+                  className="text-gray-600 text-xs"
                 >
-                  🎉 {lignesGagnantes.length} ligne{lignesGagnantes.length > 1 ? 's' : ''} gagnante{lignesGagnantes.length > 1 ? 's' : ''} !
+                  Bonne chance au prochain spin !
                 </motion.div>
               )}
             </AnimatePresence>
