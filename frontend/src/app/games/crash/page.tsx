@@ -239,7 +239,7 @@ export default function CrashPage() {
                 <canvas
                   ref={canvasRef}
                   width={700}
-                  height={350}
+                  height={280}
                   className="w-full rounded-lg crash-canvas"
                 />
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -279,62 +279,68 @@ export default function CrashPage() {
             </div>
 
             {/* Contrôles */}
-            <div className="casino-card p-4">
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="block text-xs text-gray-400 mb-1">Mise (F€)</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      value={betAmount}
-                      onChange={e => setBetAmount(e.target.value)}
+            <div className="casino-card p-4 space-y-3">
+              <label className="block text-xs text-gray-400">Mise (F€)</label>
+
+              {/* Input + chips sur une ligne */}
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={betAmount}
+                  onChange={e => setBetAmount(e.target.value)}
+                  disabled={hasBet || gameState !== 'waiting'}
+                  className="w-24 bg-casino-darker border border-casino-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-casino-gold disabled:opacity-50"
+                  min="1"
+                />
+                <div className="flex gap-1 flex-wrap flex-1">
+                  {['50', '100', '500', '1000'].map(v => (
+                    <button
+                      key={v}
+                      onClick={() => setBetAmount(v)}
                       disabled={hasBet || gameState !== 'waiting'}
-                      className="flex-1 bg-casino-darker border border-casino-border rounded-lg px-3 py-2 text-white focus:outline-none focus:border-casino-gold disabled:opacity-50"
-                      min="1"
-                    />
-                    {['50', '100', '500', '1000'].map(v => (
-                      <button
-                        key={v}
-                        onClick={() => setBetAmount(v)}
-                        disabled={hasBet || gameState !== 'waiting'}
-                        className="text-xs bg-casino-darker border border-casino-border px-2 py-1 rounded hover:border-casino-gold transition-colors disabled:opacity-50"
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
+                      className={clsx(
+                        'flex-1 text-xs border rounded py-2 transition-colors disabled:opacity-50',
+                        betAmount === v
+                          ? 'border-casino-gold bg-casino-gold/20 text-casino-gold'
+                          : 'bg-casino-darker border-casino-border text-gray-300 hover:border-casino-gold'
+                      )}
+                    >
+                      {v}
+                    </button>
+                  ))}
                 </div>
-
-                {gameState === 'waiting' && !hasBet && (
-                  <button
-                    onClick={placeBet}
-                    className="bg-casino-gold hover:bg-casino-gold-light text-black font-bold px-6 py-2 rounded-lg transition-colors self-end"
-                  >
-                    Miser
-                  </button>
-                )}
-
-                {hasBet && !myCashedOut && gameState === 'running' && (
-                  <button
-                    onClick={cashOut}
-                    className="bg-green-500 hover:bg-green-400 text-white font-bold px-4 py-2 rounded-lg transition-colors self-end animate-pulse"
-                  >
-                    💰 Retirer {formatMultiplier(multiplier)}
-                  </button>
-                )}
-
-                {hasBet && gameState === 'waiting' && (
-                  <div className="bg-casino-gold/10 border border-casino-gold/30 text-casino-gold font-bold px-4 py-2 rounded-lg self-end">
-                    ✓ Mise : {formatBalance(myBetAmount)}
-                  </div>
-                )}
-
-                {myCashedOut && (
-                  <div className="bg-green-500/10 border border-green-500/30 text-green-400 font-bold px-4 py-2 rounded-lg self-end">
-                    ✓ Retiré !
-                  </div>
-                )}
               </div>
+
+              {/* Bouton action pleine largeur */}
+              {gameState === 'waiting' && !hasBet && (
+                <button
+                  onClick={placeBet}
+                  className="w-full bg-casino-gold hover:bg-casino-gold-light text-black font-bold py-3 rounded-lg transition-colors text-lg"
+                >
+                  🎰 Miser {betAmount} F€
+                </button>
+              )}
+
+              {hasBet && !myCashedOut && gameState === 'running' && (
+                <button
+                  onClick={cashOut}
+                  className="w-full bg-green-500 hover:bg-green-400 text-white font-black py-4 rounded-lg transition-colors animate-pulse text-xl"
+                >
+                  💰 RETIRER — {formatMultiplier(multiplier)}
+                </button>
+              )}
+
+              {hasBet && gameState === 'waiting' && (
+                <div className="w-full text-center bg-casino-gold/10 border border-casino-gold/30 text-casino-gold font-bold py-3 rounded-lg">
+                  ✓ Mise placée : {formatBalance(myBetAmount)}
+                </div>
+              )}
+
+              {myCashedOut && (
+                <div className="w-full text-center bg-green-500/10 border border-green-500/30 text-green-400 font-bold py-3 rounded-lg">
+                  ✓ Retiré avec succès !
+                </div>
+              )}
             </div>
 
             {/* Table des mises */}
@@ -353,8 +359,8 @@ export default function CrashPage() {
             </div>
           </div>
 
-          {/* Chat */}
-          <div className="h-[calc(100vh-8rem)] min-h-[500px]">
+          {/* Chat — caché sur mobile */}
+          <div className="hidden lg:block h-[calc(100vh-8rem)] min-h-[500px]">
             <ChatPanel />
           </div>
         </div>
