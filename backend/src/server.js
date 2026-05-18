@@ -14,18 +14,22 @@ const { initSocket } = require('./socket/index');
 const app = express();
 const server = http.createServer(app);
 
+const corsOrigin = (origin, callback) => {
+  if (!origin) return callback(null, true);
+  const allowed = [
+    process.env.FRONTEND_URL,
+    /\.vercel\.app$/,
+    /localhost/,
+  ];
+  const ok = allowed.some(p => p instanceof RegExp ? p.test(origin) : p === origin);
+  callback(ok ? null : new Error('CORS bloqué'), ok);
+};
+
 const io = new Server(server, {
-  cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
+  cors: { origin: corsOrigin, methods: ['GET', 'POST'], credentials: true },
 });
 
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-}));
+app.use(cors({ origin: corsOrigin, credentials: true }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -43,6 +47,8 @@ app.use('/api/games', gameRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+app.get('/api/ping', (req, res) => res.json({ pong: true }));
 
 // Initialisation Socket.io
 initSocket(io);

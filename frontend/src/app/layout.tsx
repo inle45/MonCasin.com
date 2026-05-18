@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { SocketProvider } from '@/context/SocketContext';
 import { Toaster } from 'react-hot-toast';
+import KeepAlive from '@/components/ui/KeepAlive';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <AuthProvider>
           <SocketProvider>
+            <KeepAlive />
             {children}
             <Toaster
               position="top-right"

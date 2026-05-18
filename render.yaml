@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: moncasin-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npx prisma db push
+    startCommand: node prisma/seed.js && node src/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://moncasin.vercel.app
