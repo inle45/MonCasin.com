@@ -11,6 +11,7 @@ const shopRoutes = require('./routes/shop');
 const gameRoutes = require('./routes/games');
 const bonusRoutes = require('./routes/bonuses');
 const { initSocket } = require('./socket/index');
+const { setIo } = require('./socket/ioInstance');
 
 const app = express();
 const server = http.createServer(app);
@@ -51,6 +52,9 @@ app.get('/api/health', (req, res) => {
 });
 
 app.get('/api/ping', (req, res) => res.json({ pong: true }));
+
+// Rendre l'instance io accessible depuis les routes HTTP (jackpot, chat sync)
+setIo(io);
 
 // Initialisation Socket.io
 initSocket(io);
