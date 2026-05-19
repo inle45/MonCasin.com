@@ -37,22 +37,48 @@ router.post('/reveal', authenticate, async (req, res) => {
     const { index } = req.body;
     if (index === undefined) return res.status(400).json({ error: 'Index manquant' });
 
+    // Récupérer la session AVANT de révéler (pour avoir la mise)
+    const sessionBefore = getSession(req.user.id);
+    const mise = sessionBefore?.mise ?? 0;
+
     const result = revelerCase(req.user.id, index);
     if (result.erreur) return res.status(400).json({ error: result.erreur });
 
-    // Si mine ou autoWin → enregistrer le bet
-    if (result.mine || result.autoWin) {
-      const session = result.mine
-        ? { mise: 0, gain: 0, multiplicateur: 0 }
-        : { gain: result.gainPotentiel, multiplicateur: result.multiplicateur };
+    if (result.mine) {
+      // Pari perdu — enregistrer
+      await prisma.bet.create({
+        data: {
+          userId: req.user.id,
+          game: 'SLOTS',
+          amount: mise,
+          multiplier: 0,
+          result: 0,
+          won: false,
+          details: { game: 'MINES', mine: true, index },
+        },
+      });
+      const updatedUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } });
+      return res.json({ ...result, newBalance: updatedUser.balance });
+    }
 
-      // Trouver la mise depuis le résultat ou chercher en DB
-      const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-
-      if (result.autoWin && result.gainPotentiel > 0) {
-        await prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: result.gainPotentiel } } });
+    if (result.autoWin) {
+      // Toutes les cases sûres révélées → cashout automatique
+      if (result.gainPotentiel > 0) {
+        await prisma.$transaction([
+          prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: result.gainPotentiel } } }),
+          prisma.bet.create({
+            data: {
+              userId: req.user.id,
+              game: 'SLOTS',
+              amount: mise,
+              multiplier: result.multiplicateur,
+              result: result.gainPotentiel,
+              won: true,
+              details: { game: 'MINES', autoWin: true, multiplicateur: result.multiplicateur },
+            },
+          }),
+        ]);
       }
-
       const updatedUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } });
       return res.json({ ...result, newBalance: updatedUser.balance });
     }

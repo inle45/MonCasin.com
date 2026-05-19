@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/layout/Navbar';
 import api, { formatBalance } from '@/lib/api';
@@ -37,7 +38,9 @@ export default function MinesPage() {
       setFin(null);
       setSafeCount(0);
       setActif(true);
-    } catch {}
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Impossible de démarrer la partie');
+    }
     setLoading(false);
   }, [loading, user, mise, minesCount, updateUser]);
 
@@ -73,7 +76,9 @@ export default function MinesPage() {
           setCells([...next]);
         }
       }
-    } catch {}
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Erreur lors de la révélation');
+    }
     setLoading(false);
   }, [actif, cells, loading, updateUser]);
 
@@ -91,7 +96,9 @@ export default function MinesPage() {
       setFin('win');
       setMultiplicateur(data.multiplicateur);
       setGainPotentiel(data.gain);
-    } catch {}
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Erreur cashout');
+    }
     setLoading(false);
   }, [actif, safeCount, loading, cells, updateUser]);
 
