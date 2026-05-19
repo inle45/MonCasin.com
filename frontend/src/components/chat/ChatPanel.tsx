@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { ChatMessage } from '@/types';
 import { Send } from 'lucide-react';
 import { clsx } from 'clsx';
+import ProfileModal from '@/components/ui/ProfileModal';
 
 const GRADE_BADGES: Record<string, string> = {
   SILVER: '🥈',
@@ -19,6 +20,7 @@ export default function ChatPanel({ initialMessages = [] }: { initialMessages?: 
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState('');
+  const [profilePseudo, setProfilePseudo] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,7 +70,11 @@ export default function ChatPanel({ initialMessages = [] }: { initialMessages?: 
                 onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.png'; }}
               />
               <div className="min-w-0">
-                <span className="font-medium" style={{ color: msg.pseudoColor && msg.pseudoColor !== 'rainbow' ? msg.pseudoColor : undefined }}>
+                <span
+                  className="font-medium cursor-pointer hover:underline"
+                  style={{ color: msg.pseudoColor && msg.pseudoColor !== 'rainbow' ? msg.pseudoColor : undefined }}
+                  onClick={() => setProfilePseudo(msg.pseudo)}
+                >
                   {msg.grade !== 'NONE' && GRADE_BADGES[msg.grade] && (
                     <span className="mr-1 text-xs">{GRADE_BADGES[msg.grade]}</span>
                   )}
@@ -101,6 +107,10 @@ export default function ChatPanel({ initialMessages = [] }: { initialMessages?: 
           <Send className="w-4 h-4" />
         </button>
       </form>
+
+      {profilePseudo && (
+        <ProfileModal pseudo={profilePseudo} onClose={() => setProfilePseudo(null)} />
+      )}
     </div>
   );
 }

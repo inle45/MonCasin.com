@@ -28,14 +28,16 @@ const GAMES = [
 ];
 
 const MORE_LINKS = [
-  { href: '/challenge',  label: 'Défi du jour', icon: Swords        },
+  { href: '/duel',       label: 'Duels',       icon: Swords        },
+  { href: '/battlepass', label: 'Battle Pass', icon: Trophy        },
+  { href: '/challenge',  label: 'Défi du jour', icon: Gamepad2     },
   { href: '/scratch',    label: 'Grattage',    icon: Sparkles      },
   { href: '/quests',     label: 'Quêtes',      icon: ClipboardList },
   { href: '/race',       label: 'Wager Race',  icon: Flag          },
-  { href: '/tournament', label: 'Tournoi',     icon: Trophy        },
+  { href: '/tournament', label: 'Tournoi',     icon: Star          },
   { href: '/lottery',    label: 'Loterie',     icon: Ticket        },
   { href: '/rakeback',   label: 'Rakeback',    icon: RotateCcw     },
-  { href: '/grades',     label: 'Grades',      icon: Star          },
+  { href: '/grades',     label: 'Grades',      icon: BarChart2     },
   { href: '/stats',      label: 'Mes stats',   icon: BarChart2     },
   { href: '/shop',       label: 'Boutique',    icon: ShoppingBag   },
   { href: '/bonuses',    label: 'Bonus',       icon: Gift          },

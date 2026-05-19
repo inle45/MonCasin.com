@@ -28,6 +28,64 @@ const upload = multer({
   },
 });
 
+router.get('/public/:pseudo', async (req, res) => {
+  try {
+    const [user, betStats, wonStats, gameGroups] = await Promise.all([
+      prisma.user.findUnique({
+        where: { pseudo: req.params.pseudo },
+        select: {
+          id: true,
+          pseudo: true,
+          avatar: true,
+          grade: true,
+          level: true,
+          xp: true,
+          streak: true,
+          createdAt: true,
+        },
+      }),
+      prisma.bet.aggregate({
+        where: { user: { pseudo: req.params.pseudo } },
+        _count: { id: true },
+      }),
+      prisma.bet.aggregate({
+        where: { user: { pseudo: req.params.pseudo }, won: true },
+        _count: { id: true },
+        _max: { result: true, multiplier: true },
+      }),
+      prisma.bet.groupBy({
+        by: ['game'],
+        where: { user: { pseudo: req.params.pseudo } },
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 1,
+      }),
+    ]);
+
+    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+
+    res.json({
+      pseudo: user.pseudo,
+      avatar: user.avatar,
+      grade: user.grade,
+      level: user.level,
+      xp: user.xp,
+      streak: user.streak,
+      createdAt: user.createdAt,
+      stats: {
+        totalBets: betStats._count.id,
+        totalWon: wonStats._count.id,
+        biggestWin: wonStats._max.result ?? 0,
+        bestMultiplier: wonStats._max.multiplier ?? 0,
+        favoriteGame: gameGroups[0]?.game ?? null,
+      },
+    });
+  } catch (err) {
+    console.error('Erreur public profile:', err);
+    res.status(500).json({ error: 'Erreur interne' });
+  }
+});
+
 router.get('/leaderboard', async (req, res) => {
   try {
     const users = await prisma.user.findMany({

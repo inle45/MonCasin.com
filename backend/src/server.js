@@ -24,6 +24,8 @@ const { router: raceRoutes, distributeRaceRewards } = require('./routes/race');
 const blackjackRoutes = require('./routes/blackjack');
 const { router: challengeRoutes } = require('./routes/challenge');
 const scratchRoutes = require('./routes/scratch');
+const { router: battlePassRoutes } = require('./routes/battlepass');
+const duelRoutes = require('./routes/duel');
 const { getHappyHourStatus } = require('./utils/happyHour');
 const { initSocket } = require('./socket/index');
 const { setIo } = require('./socket/ioInstance');
@@ -76,6 +78,8 @@ app.use('/api/rakeback', rakebackRoutes);
 app.use('/api/race', raceRoutes);
 app.use('/api/challenge', challengeRoutes);
 app.use('/api/scratch', scratchRoutes);
+app.use('/api/battlepass', battlePassRoutes);
+app.use('/api/duel', duelRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

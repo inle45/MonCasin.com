@@ -20,7 +20,10 @@ function getChestReward(level) {
 async function grantXp(userId, betAmount) {
   const xpGain = Math.max(1, Math.floor(betAmount / 10));
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { xp: true, level: true } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { xp: true, level: true, battlePassXp: true, battlePassSeason: true },
+  });
   if (!user) return;
 
   const newXp = user.xp + xpGain;
@@ -30,7 +33,11 @@ async function grantXp(userId, betAmount) {
   const chestReward = leveledUp ? getChestReward(newLevel) : 0;
   const totalReward = levelReward + chestReward;
 
-  const updates = { xp: newXp, level: newLevel };
+  const currentSeason = new Date().toISOString().slice(0, 7);
+  const bpXpBase = user.battlePassSeason === currentSeason ? user.battlePassXp : 0;
+  const newBattlePassXp = bpXpBase + xpGain;
+
+  const updates = { xp: newXp, level: newLevel, battlePassXp: newBattlePassXp, battlePassSeason: currentSeason };
   if (totalReward > 0) updates.balance = { increment: totalReward };
 
   await prisma.user.update({ where: { id: userId }, data: updates });

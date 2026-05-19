@@ -27,6 +27,9 @@ model User {
   streak            Int      @default(0)
   lastLoginDate     String?
 
+  battlePassXp      Int      @default(0)
+  battlePassSeason  String?
+
   bets              Bet[]
   chatMessages      ChatMessage[]
   transactions      Transaction[]
@@ -39,6 +42,7 @@ model User {
   inventoryItems    InventoryItem[]
   dailyQuests       UserDailyQuest[]
   lotteryTickets    LotteryTicket[]
+  battlePassClaims  BattlePassClaim[]
 
   @@map("users")
 }
@@ -278,4 +282,42 @@ enum ItemType {
   DOUBLE_DAILY
   EMOTE_VIP
   SOUNDBITE
+}
+
+model BattlePassClaim {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  season    String
+  tier      Int
+  claimedAt DateTime @default(now())
+
+  @@unique([userId, season, tier])
+  @@map("battle_pass_claims")
+}
+
+model Duel {
+  id               String     @id @default(uuid())
+  challengerId     String
+  challengerPseudo String
+  targetId         String
+  targetPseudo     String
+  amount           Float
+  status           DuelStatus @default(PENDING)
+  winnerId         String?
+  winnerPseudo     String?
+  challengerRoll   Int?
+  targetRoll       Int?
+  createdAt        DateTime   @default(now())
+  resolvedAt       DateTime?
+
+  @@map("duels")
+}
+
+enum DuelStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  EXPIRED
 }

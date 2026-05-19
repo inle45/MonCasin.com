@@ -150,6 +150,40 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    s.on('duel:incoming', (data: { duelId: string; challengerPseudo: string; amount: number }) => {
+      sfx.achievement();
+      toast.custom((t) => (
+        <div className="bg-casino-card border border-purple-500/50 rounded-xl px-5 py-4 shadow-xl max-w-sm">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-3xl">⚔️</span>
+            <div>
+              <div className="text-purple-400 font-bold text-sm">Défi reçu !</div>
+              <div className="text-white font-bold">{data.challengerPseudo}</div>
+              <div className="text-gray-400 text-xs">mise : <span className="text-yellow-400 font-black">{data.amount.toLocaleString('fr-FR')} F€</span></div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { toast.dismiss(t.id); window.location.href = '/duel'; }}
+              className="flex-1 bg-green-600 hover:bg-green-500 text-white font-black py-2 rounded-lg text-xs transition-colors"
+            >Voir le défi</button>
+            <button onClick={() => toast.dismiss(t.id)}
+              className="flex-1 bg-white/10 hover:bg-white/20 text-gray-300 font-bold py-2 rounded-lg text-xs transition-colors"
+            >Plus tard</button>
+          </div>
+        </div>
+      ), { duration: 15000 });
+    });
+
+    s.on('duel:declined', (data: { targetPseudo: string }) => {
+      toast(`${data.targetPseudo} a refusé ton défi.`, { icon: '❌', duration: 4000 });
+    });
+
+    s.on('duel:result', (data: { winnerPseudo: string; challengerPseudo: string; targetPseudo: string; challengerRoll: number; targetRoll: number; prize: number }) => {
+      // This fires for both players — each page handles its own toast via api response
+      // Global broadcast for spectator context (livefeed-like)
+    });
+
     s.on('challenge:completed', (data: { pseudo: string; description: string; reward: number; emoji: string }) => {
       sfx.achievement();
       toast.custom(() => (
