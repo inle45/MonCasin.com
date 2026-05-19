@@ -73,14 +73,18 @@ setIo(io);
 // Initialisation Socket.io
 initSocket(io);
 
-// Vérifier les tirages en attente au démarrage puis toutes les heures
-checkPendingDraw();
-setInterval(checkPendingDraw, 60 * 60 * 1000);
+// Prévenir les crashes sur rejections non-catchées
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️  Unhandled rejection:', reason);
+});
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`🎰 MonCasin.com Backend démarré sur le port ${PORT}`);
   console.log(`🌐 CORS autorisé pour : ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+  // Vérifier les tirages en attente 5s après démarrage puis toutes les heures
+  setTimeout(checkPendingDraw, 5000);
+  setInterval(checkPendingDraw, 60 * 60 * 1000);
 });
 
 module.exports = { app, server, io };
