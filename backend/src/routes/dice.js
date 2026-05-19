@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../config/database');
 const { authenticate } = require('../middleware/auth');
+const { applyHappyHour, isHappyHour } = require('../utils/happyHour');
 
 const router = express.Router();
 
@@ -39,7 +40,8 @@ router.post('/roll', authenticate, async (req, res) => {
     // Multiplicateur avec avantage maison de 3%
     const multiplicateur = prob > 0 ? Math.round((0.97 / prob) * 100) / 100 : 0;
 
-    const gain = gagne ? Math.round(mise * multiplicateur * 100) / 100 : 0;
+    const gainBrut = gagne ? Math.round(mise * multiplicateur * 100) / 100 : 0;
+    const gain = gagne ? applyHappyHour(mise, gainBrut) : 0;
     const balanceChange = gain - mise;
 
     await prisma.$transaction([
@@ -58,7 +60,7 @@ router.post('/roll', authenticate, async (req, res) => {
     ]);
 
     const updatedUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } });
-    res.json({ de1, de2, total, gagne, gain, multiplicateur, newBalance: updatedUser.balance });
+    res.json({ de1, de2, total, gagne, gain, multiplicateur, happyHour: isHappyHour(), newBalance: updatedUser.balance });
   } catch (err) {
     console.error('Erreur dice:', err);
     res.status(500).json({ error: 'Erreur lors du lancer' });

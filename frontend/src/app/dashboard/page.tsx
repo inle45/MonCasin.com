@@ -33,6 +33,46 @@ const GAMES = [
     badgeColor: 'text-red-400 bg-red-400/10',
   },
   {
+    href: '/games/slots',
+    title: 'Machine à Sous',
+    icon: '🎰',
+    description: 'Faites tourner les rouleaux ! Jackpot progressif, bonus coffres et roue.',
+    color: 'from-purple-500/20 to-violet-900/20',
+    border: 'border-purple-500/30',
+    badge: 'SOLO',
+    badgeColor: 'text-purple-400 bg-purple-400/10',
+  },
+  {
+    href: '/games/blackjack',
+    title: 'Blackjack',
+    icon: '🃏',
+    description: 'Battez le croupier sans dépasser 21. Double, split et bonus Happy Hour !',
+    color: 'from-yellow-500/20 to-amber-900/20',
+    border: 'border-yellow-500/30',
+    badge: 'SOLO',
+    badgeColor: 'text-yellow-400 bg-yellow-400/10',
+  },
+  {
+    href: '/games/mines',
+    title: 'Mines',
+    icon: '💣',
+    description: 'Évite les mines et cashout quand tu veux. Plus tu révèles, plus tu gagnes !',
+    color: 'from-orange-500/20 to-orange-900/20',
+    border: 'border-orange-500/30',
+    badge: 'SOLO',
+    badgeColor: 'text-orange-400 bg-orange-400/10',
+  },
+  {
+    href: '/games/plinko',
+    title: 'Plinko',
+    icon: '🪙',
+    description: 'Lâche la bille et regarde-la rebondir vers des multiplicateurs fous !',
+    color: 'from-pink-500/20 to-pink-900/20',
+    border: 'border-pink-500/30',
+    badge: 'SOLO',
+    badgeColor: 'text-pink-400 bg-pink-400/10',
+  },
+  {
     href: '/games/dice',
     title: 'Dice',
     icon: '🎲',
@@ -43,14 +83,24 @@ const GAMES = [
     badgeColor: 'text-blue-400 bg-blue-400/10',
   },
   {
-    href: '/games/slots',
-    title: 'Machine à Sous',
-    icon: '🎰',
-    description: 'Faites tourner les rouleaux ! TRJ de 86% conforme à la loi française.',
-    color: 'from-purple-500/20 to-violet-900/20',
-    border: 'border-purple-500/30',
+    href: '/games/hilo',
+    title: 'Hi-Lo',
+    icon: '🎴',
+    description: 'Plus haut ou plus bas ? Enchaîne les bonnes prédictions pour multiplier !',
+    color: 'from-cyan-500/20 to-cyan-900/20',
+    border: 'border-cyan-500/30',
     badge: 'SOLO',
-    badgeColor: 'text-purple-400 bg-purple-400/10',
+    badgeColor: 'text-cyan-400 bg-cyan-400/10',
+  },
+  {
+    href: '/games/limbo',
+    title: 'Limbo',
+    icon: '🌙',
+    description: 'Choisis ton multiplicateur cible et tente de l\'atteindre. Jusqu\'à ×1 000 000 !',
+    color: 'from-indigo-500/20 to-indigo-900/20',
+    border: 'border-indigo-500/30',
+    badge: 'SOLO',
+    badgeColor: 'text-indigo-400 bg-indigo-400/10',
   },
 ];
 
@@ -169,22 +219,22 @@ export default function DashboardPage() {
               Nos jeux
             </h2>
 
-            <div className="grid gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {GAMES.map(game => (
                 <Link key={game.href} href={game.href}>
-                  <div className={`casino-card p-5 bg-gradient-to-r ${game.color} border ${game.border} hover:scale-[1.01] transition-transform cursor-pointer`}>
-                    <div className="flex items-center gap-4">
-                      <span className="text-5xl">{game.icon}</span>
-                      <div className="flex-1">
+                  <div className={`casino-card p-4 bg-gradient-to-r ${game.color} border ${game.border} hover:scale-[1.01] transition-transform cursor-pointer h-full`}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-4xl flex-shrink-0">{game.icon}</span>
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg font-bold text-white">{game.title}</h3>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${game.badgeColor}`}>
+                          <h3 className="text-base font-bold text-white truncate">{game.title}</h3>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${game.badgeColor}`}>
                             {game.badge}
                           </span>
                         </div>
-                        <p className="text-gray-400 text-sm">{game.description}</p>
+                        <p className="text-gray-400 text-xs line-clamp-2">{game.description}</p>
                       </div>
-                      <div className="text-2xl text-gray-600">›</div>
+                      <div className="text-xl text-gray-600 flex-shrink-0">›</div>
                     </div>
                   </div>
                 </Link>

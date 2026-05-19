@@ -4,6 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const { grantXp } = require('../games/xp');
 const { getIo } = require('../socket/ioInstance');
 const { tryCompleteChallenge } = require('./challenge');
+const { applyHappyHour, isHappyHour } = require('../utils/happyHour');
 
 const router = express.Router();
 
@@ -42,7 +43,8 @@ router.post('/play', authenticate, async (req, res) => {
     const path = Array.from({ length: rows }, () => Math.random() < 0.5 ? 0 : 1);
     const bucket = path.reduce((a, b) => a + b, 0);
     const multiplier = MULTIPLIERS[risk][rows][bucket];
-    const payout = parseFloat((bet * multiplier).toFixed(2));
+    const payoutBrut = parseFloat((bet * multiplier).toFixed(2));
+    const payout = multiplier >= 1 ? applyHappyHour(bet, payoutBrut) : payoutBrut;
     const won = multiplier >= 1;
 
     const profit = payout - bet;
@@ -81,7 +83,7 @@ router.post('/play', authenticate, async (req, res) => {
 
     tryCompleteChallenge(req.user.id, 'plinko_result', { risk, bucket, rows }).catch(() => {});
 
-    res.json({ path, bucket, multiplier, payout, newBalance });
+    res.json({ path, bucket, multiplier, payout, happyHour: isHappyHour(), newBalance });
   } catch (err) {
     console.error('Erreur plinko:', err);
     res.status(500).json({ error: 'Erreur interne' });

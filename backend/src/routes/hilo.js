@@ -5,6 +5,7 @@ const { startHilo, guessHilo, cashoutHilo, getHiloSession } = require('../games/
 const { getIo } = require('../socket/ioInstance');
 const { grantXp } = require('../games/xp');
 const { tryCompleteChallenge } = require('./challenge');
+const { applyHappyHour, isHappyHour } = require('../utils/happyHour');
 
 const router = express.Router();
 
@@ -53,18 +54,19 @@ router.post('/guess', authenticate, async (req, res) => {
     }
 
     if (result.autoWin) {
+      const gainFinal = applyHappyHour(mise, result.gainPotentiel);
       await prisma.$transaction([
-        prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: result.gainPotentiel } } }),
+        prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: gainFinal } } }),
         prisma.bet.create({
           data: {
             userId: req.user.id, game: 'SLOTS', amount: mise,
-            multiplier: result.multiplier, result: result.gainPotentiel, won: true,
-            details: { game: 'HILO', round: result.round, autoWin: true },
+            multiplier: result.multiplier, result: gainFinal, won: true,
+            details: { game: 'HILO', round: result.round, autoWin: true, happyHour: isHappyHour() },
           },
         }),
       ]);
       const updated = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } });
-      return res.json({ ...result, newBalance: updated.balance });
+      return res.json({ ...result, gainPotentiel: gainFinal, happyHour: isHappyHour(), newBalance: updated.balance });
     }
 
     res.json(result);
@@ -84,13 +86,15 @@ router.post('/cashout', authenticate, async (req, res) => {
     const result = cashoutHilo(req.user.id);
     if (result.erreur) return res.status(400).json({ error: result.erreur });
 
+    const gainFinal = applyHappyHour(mise, result.gain);
+
     await prisma.$transaction([
-      prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: result.gain } } }),
+      prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: gainFinal } } }),
       prisma.bet.create({
         data: {
           userId: req.user.id, game: 'SLOTS', amount: mise,
-          multiplier: result.multiplier, result: result.gain, won: true,
-          details: { game: 'HILO', multiplier: result.multiplier },
+          multiplier: result.multiplier, result: gainFinal, won: true,
+          details: { game: 'HILO', multiplier: result.multiplier, happyHour: isHappyHour() },
         },
       }),
     ]);
@@ -98,21 +102,21 @@ router.post('/cashout', authenticate, async (req, res) => {
     grantXp(req.user.id, mise).catch(() => {});
     const updated = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true, pseudo: true } });
 
-    if (result.gain >= 200) {
+    if (gainFinal >= 200) {
       const io = getIo();
       if (io) io.emit('livefeed:event', {
         id: `hl-${Date.now()}`,
         pseudo: updated.pseudo,
         emoji: result.multiplier >= 5 ? '🃏' : '🎴',
         message: `cashout ×${result.multiplier} au Hi-Lo`,
-        amount: result.gain,
+        amount: gainFinal,
         positive: true,
       });
     }
 
     tryCompleteChallenge(req.user.id, 'hilo_cashout', { wins: result.wins ?? 0 }).catch(() => {});
 
-    res.json({ ...result, newBalance: updated.balance });
+    res.json({ ...result, gain: gainFinal, happyHour: isHappyHour(), newBalance: updated.balance });
   } catch (err) {
     console.error('Erreur hilo cashout:', err);
     res.status(500).json({ error: 'Erreur cashout' });

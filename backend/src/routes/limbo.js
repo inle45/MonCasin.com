@@ -4,6 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const { grantXp } = require('../games/xp');
 const { getIo } = require('../socket/ioInstance');
 const { tryCompleteChallenge } = require('./challenge');
+const { applyHappyHour, isHappyHour } = require('../utils/happyHour');
 
 const router = express.Router();
 const HOUSE_EDGE = 0.03;
@@ -29,7 +30,8 @@ router.post('/play', authenticate, async (req, res) => {
 
     const result = parseFloat(generateResult().toFixed(2));
     const won = result >= target;
-    const payout = won ? bet * target : 0;
+    const payoutBrut = won ? bet * target : 0;
+    const payout = won ? applyHappyHour(bet, payoutBrut) : 0;
     const profit = payout - bet;
 
     const updates = { balance: { increment: profit } };
@@ -67,7 +69,7 @@ router.post('/play', authenticate, async (req, res) => {
 
     tryCompleteChallenge(req.user.id, 'limbo_result', { won, target, result }).catch(() => {});
 
-    res.json({ result, target, bet, won, payout, newBalance });
+    res.json({ result, target, bet, won, payout, happyHour: isHappyHour(), newBalance });
   } catch (err) {
     console.error('Erreur limbo:', err);
     res.status(500).json({ error: 'Erreur interne' });

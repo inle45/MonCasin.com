@@ -162,6 +162,19 @@ router.get('/history', authenticate, async (req, res) => {
   }
 });
 
+router.get('/me/transactions', authenticate, async (req, res) => {
+  try {
+    const transactions = await prisma.transaction.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    res.json({ transactions });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur lors du chargement des transactions' });
+  }
+});
+
 const GRADE_DAILY_INCOME = { NONE: 0, SILVER: 100, GOLD: 250, PLATINUM: 500, DIAMOND: 1000 };
 
 router.post('/grade-income', authenticate, async (req, res) => {

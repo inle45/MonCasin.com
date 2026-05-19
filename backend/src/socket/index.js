@@ -219,7 +219,7 @@ function initSocket(io) {
 
       // Vérifier succès : Chasseur de Multiplicateurs (50x+)
       if (result.multiplier >= 50) {
-        await grantAchievement(socket, user.id, 'chasseur-multiplicateurs', io);
+        await grantAchievement(socket, user.id, 'chasseur_multiplicateurs', io);
       }
 
       // Vérifier succès : Premier Gain
@@ -227,7 +227,7 @@ function initSocket(io) {
 
       // Vérifier succès : Millionnaire
       if (newBalance >= 100000) {
-        await grantAchievement(socket, user.id, 'riche-a-millions', io);
+        await grantAchievement(socket, user.id, 'riche_a_millions', io);
       }
 
       broadcastLeaderboard();
@@ -330,7 +330,7 @@ function initSocket(io) {
         consecutiveCrashOnes.set(uid, count);
         if (count >= 3) {
           consecutiveCrashOnes.set(uid, 0);
-          await grantAchievementById(s, uid, 'chat-noir', io);
+          await grantAchievementById(s, uid, 'chat_noir', io);
         }
       }
     } else {
@@ -403,7 +403,7 @@ function initSocket(io) {
               });
               const totalColorBet = colorBets.reduce((s, b) => s + b.amount, 0);
               if (totalColorBet >= 10000 && totalColorBet >= (freshUser.balance - result.totalWin + totalColorBet) * 0.95) {
-                await grantAchievement(userSocket, result.userId, 'all-in-reussi', io);
+                await grantAchievement(userSocket, result.userId, 'all_in_reussi', io);
               }
             }
 
@@ -411,7 +411,7 @@ function initSocket(io) {
               where: { id: result.userId }, select: { balance: true },
             });
             if (newBal.balance >= 100000) {
-              await grantAchievement(userSocket, result.userId, 'riche-a-millions', io);
+              await grantAchievement(userSocket, result.userId, 'riche_a_millions', io);
             }
           }
         }
@@ -642,7 +642,7 @@ function initSocket(io) {
   async function checkFirstWinAchievement(socket, userId, io) {
     const winCount = await prisma.bet.count({ where: { userId, won: true } });
     if (winCount === 1) {
-      await grantAchievement(socket, userId, 'premier-gain', io);
+      await grantAchievement(socket, userId, 'premier_gain', io);
     }
   }
 

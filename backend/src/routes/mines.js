@@ -5,6 +5,7 @@ const { demarrerMines, revelerCase, cashout, getSession } = require('../games/mi
 const { getIo } = require('../socket/ioInstance');
 const { grantXp } = require('../games/xp');
 const { tryCompleteChallenge } = require('./challenge');
+const { applyHappyHour, isHappyHour } = require('../utils/happyHour');
 
 const router = express.Router();
 
@@ -66,25 +67,25 @@ router.post('/reveal', authenticate, async (req, res) => {
     }
 
     if (result.autoWin) {
-      // Toutes les cases sûres révélées → cashout automatique
-      if (result.gainPotentiel > 0) {
+      const gainFinal = applyHappyHour(mise, result.gainPotentiel);
+      if (gainFinal > 0) {
         await prisma.$transaction([
-          prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: result.gainPotentiel } } }),
+          prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: gainFinal } } }),
           prisma.bet.create({
             data: {
               userId: req.user.id,
               game: 'SLOTS',
               amount: mise,
               multiplier: result.multiplicateur,
-              result: result.gainPotentiel,
+              result: gainFinal,
               won: true,
-              details: { game: 'MINES', autoWin: true, multiplicateur: result.multiplicateur },
+              details: { game: 'MINES', autoWin: true, multiplicateur: result.multiplicateur, happyHour: isHappyHour() },
             },
           }),
         ]);
       }
       const updatedUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } });
-      return res.json({ ...result, newBalance: updatedUser.balance });
+      return res.json({ ...result, gainPotentiel: gainFinal, happyHour: isHappyHour(), newBalance: updatedUser.balance });
     }
 
     res.json(result);
@@ -105,17 +106,19 @@ router.post('/cashout', authenticate, async (req, res) => {
     const result = cashout(req.user.id);
     if (result.erreur) return res.status(400).json({ error: result.erreur });
 
+    const gainFinal = applyHappyHour(mise, result.gain);
+
     await prisma.$transaction([
-      prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: result.gain } } }),
+      prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: gainFinal } } }),
       prisma.bet.create({
         data: {
           userId: req.user.id,
           game: 'SLOTS',
           amount: mise,
           multiplier: result.multiplicateur,
-          result: result.gain,
+          result: gainFinal,
           won: true,
-          details: { game: 'MINES', mines: result.mines, multiplicateur: result.multiplicateur },
+          details: { game: 'MINES', mines: result.mines, multiplicateur: result.multiplicateur, happyHour: isHappyHour() },
         },
       }),
     ]);
@@ -123,21 +126,21 @@ router.post('/cashout', authenticate, async (req, res) => {
     grantXp(req.user.id, mise).catch(() => {});
     const updatedUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true, pseudo: true } });
 
-    if (result.gain >= 300) {
+    if (gainFinal >= 300) {
       const io = getIo();
       if (io) io.emit('livefeed:event', {
         id: `mn-${Date.now()}`,
         pseudo: updatedUser.pseudo,
-        emoji: result.gain >= 2000 ? '💎' : '💣',
+        emoji: gainFinal >= 2000 ? '💎' : '💣',
         message: `cashout ×${result.multiplicateur} aux Mines`,
-        amount: result.gain,
+        amount: gainFinal,
         positive: true,
       });
     }
 
     tryCompleteChallenge(req.user.id, 'mines_cashout', { revealed: result.revealed?.length ?? 0 }).catch(() => {});
 
-    res.json({ ...result, newBalance: updatedUser.balance });
+    res.json({ ...result, gain: gainFinal, happyHour: isHappyHour(), newBalance: updatedUser.balance });
   } catch (err) {
     console.error('Erreur mines cashout:', err);
     res.status(500).json({ error: 'Erreur cashout' });
