@@ -15,7 +15,8 @@ type DrawResult = {
   day: string;
   jackpot: number;
   noWinner: boolean;
-  winner?: { pseudo: string; avatar: string | null } | null;
+  winnerId?: string | null;
+  winnerPseudo?: string | null;
   drawnAt: string;
 };
 
@@ -218,7 +219,7 @@ export default function LotteryPage() {
                   <span className="text-2xl">{draw.noWinner ? '😅' : '🎉'}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-bold text-white">
-                      {draw.noWinner ? 'Personne n\'a gagné' : draw.winner?.pseudo ?? 'Gagnant'}
+                      {draw.noWinner ? 'Personne n\'a gagné' : draw.winnerPseudo ?? 'Gagnant'}
                     </div>
                     <div className="text-xs text-gray-500">{draw.day}</div>
                   </div>

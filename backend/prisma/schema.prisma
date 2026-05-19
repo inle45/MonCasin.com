@@ -36,7 +36,6 @@ model User {
   inventoryItems    InventoryItem[]
   dailyQuests       UserDailyQuest[]
   lotteryTickets    LotteryTicket[]
-  lotteryWins       LotteryDraw[]
 
   @@map("users")
 }
@@ -244,13 +243,13 @@ model LotteryTicket {
 }
 
 model LotteryDraw {
-  id        String   @id @default(uuid())
-  day       String   @unique
-  winnerId  String?
-  winner    User?    @relation(fields: [winnerId], references: [id])
-  jackpot   Float
-  noWinner  Boolean  @default(false)
-  drawnAt   DateTime @default(now())
+  id           String   @id @default(uuid())
+  day          String   @unique
+  winnerId     String?
+  winnerPseudo String?
+  jackpot      Float
+  noWinner     Boolean  @default(false)
+  drawnAt      DateTime @default(now())
 
   @@map("lottery_draws")
 }

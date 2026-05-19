@@ -42,16 +42,16 @@ async function runDraw(day) {
   const noWinner = Math.random() < NO_WINNER_CHANCE;
 
   if (noWinner) {
-    const draw = await prisma.lotteryDraw.create({ data: { day, jackpot, noWinner: true } });
+    await prisma.lotteryDraw.create({ data: { day, jackpot, noWinner: true } });
     const io = getIo();
-    if (io) io.emit('lottery:result', { day, noWinner: true, jackpot, nextJackpot: jackpot });
-    return draw;
+    if (io) io.emit('lottery:result', { day, noWinner: true, jackpot });
+    return;
   }
 
   const winner = tickets[Math.floor(Math.random() * tickets.length)];
 
   await prisma.$transaction([
-    prisma.lotteryDraw.create({ data: { day, winnerId: winner.userId, jackpot, noWinner: false } }),
+    prisma.lotteryDraw.create({ data: { day, winnerId: winner.userId, winnerPseudo: winner.user.pseudo, jackpot, noWinner: false } }),
     prisma.user.update({ where: { id: winner.userId }, data: { balance: { increment: jackpot } } }),
     prisma.transaction.create({
       data: { userId: winner.userId, type: 'BONUS', amount: jackpot, description: `Gagnant loterie du ${day}` },
@@ -93,7 +93,6 @@ router.get('/', authenticate, async (req, res) => {
       prisma.lotteryDraw.findMany({
         orderBy: { drawnAt: 'desc' },
         take: 10,
-        include: { winner: { select: { pseudo: true, avatar: true } } },
       }),
     ]);
 
