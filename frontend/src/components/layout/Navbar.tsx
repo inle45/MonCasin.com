@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { formatBalance } from '@/lib/api';
 import { sfx } from '@/lib/sfx';
-import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star, Ticket, TrendingUp, RotateCcw } from 'lucide-react';
+import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star, Ticket, RotateCcw } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const GRADE_ICONS: Record<string, string> = {
