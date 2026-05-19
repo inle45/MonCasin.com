@@ -11,7 +11,20 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'MonCasin.com - Casino en ligne fictif',
   description: 'Casino en ligne multijoueur avec Euro Fictif (F€)',
-  icons: { icon: '/favicon.ico' },
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/icon-192.png',
+  },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'MonCasin',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'theme-color': '#f59e0b',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { formatBalance } from '@/lib/api';
-import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal } from 'lucide-react';
+import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const GRADE_ICONS: Record<string, string> = {
@@ -20,13 +20,15 @@ const GAMES = [
   { href: '/games/roulette',emoji: '🎡', label: 'Roulette' },
   { href: '/games/slots',   emoji: '🎰', label: 'Slots'    },
   { href: '/games/dice',    emoji: '🎲', label: 'Dice'     },
+  { href: '/games/mines',   emoji: '💣', label: 'Mines'    },
 ];
 
-// Menu "Plus" — boutique, bonus, inventaire
+// Menu "Plus" — boutique, bonus, inventaire, tournoi
 const MORE_LINKS = [
-  { href: '/shop',      label: 'Boutique', icon: ShoppingBag },
-  { href: '/bonuses',   label: 'Bonus',    icon: Gift        },
-  { href: '/inventory', label: 'Mon sac',  icon: Package     },
+  { href: '/tournament', label: 'Tournoi',  icon: Trophy      },
+  { href: '/shop',       label: 'Boutique', icon: ShoppingBag },
+  { href: '/bonuses',    label: 'Bonus',    icon: Gift        },
+  { href: '/inventory',  label: 'Mon sac',  icon: Package     },
 ];
 
 export default function Navbar() {
