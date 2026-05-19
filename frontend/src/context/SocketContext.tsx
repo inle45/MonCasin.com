@@ -39,7 +39,8 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+    const isLocal = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+    const SOCKET_URL = isLocal ? 'http://localhost:3001' : 'https://moncasin-backend.onrender.com';
     const s = io(SOCKET_URL, { auth: { token }, transports: ['websocket'] });
 
     s.on('connect', () => setConnected(true));

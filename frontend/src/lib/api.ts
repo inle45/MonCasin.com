@@ -1,6 +1,16 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const PROD_URL = 'https://moncasin-backend.onrender.com';
+const DEV_URL = 'http://localhost:3001';
+
+function getApiUrl() {
+  if (typeof window !== 'undefined') {
+    return window.location.hostname === 'localhost' ? DEV_URL : PROD_URL;
+  }
+  return process.env.NEXT_PUBLIC_API_URL || DEV_URL;
+}
+
+const API_URL = getApiUrl();
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
