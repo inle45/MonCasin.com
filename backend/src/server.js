@@ -21,6 +21,8 @@ const limboRoutes = require('./routes/limbo');
 const rakebackRoutes = require('./routes/rakeback');
 const plinkoRoutes = require('./routes/plinko');
 const { router: raceRoutes, distributeRaceRewards } = require('./routes/race');
+const blackjackRoutes = require('./routes/blackjack');
+const { getHappyHourStatus } = require('./utils/happyHour');
 const { initSocket } = require('./socket/index');
 const { setIo } = require('./socket/ioInstance');
 
@@ -66,6 +68,8 @@ app.use('/api/games/hilo', hiloRoutes);
 app.use('/api/lottery', lotteryRoutes);
 app.use('/api/games/limbo', limboRoutes);
 app.use('/api/games/plinko', plinkoRoutes);
+app.use('/api/games/blackjack', blackjackRoutes);
+app.get('/api/happyhour', (req, res) => res.json(getHappyHourStatus()));
 app.use('/api/rakeback', rakebackRoutes);
 app.use('/api/race', raceRoutes);
 
@@ -98,6 +102,17 @@ server.listen(PORT, () => {
     const now = new Date();
     if (now.getDay() === 1 && now.getHours() === 0) distributeRaceRewards();
   }, 60 * 60 * 1000);
+
+  // Broadcast Happy Hour status toutes les minutes
+  let lastHH = false;
+  setInterval(() => {
+    const status = getHappyHourStatus();
+    if (status.active !== lastHH) {
+      lastHH = status.active;
+      io.emit('happyhour:update', status);
+    }
+  }, 60 * 1000);
+  io.emit('happyhour:update', getHappyHourStatus());
 });
 
 module.exports = { app, server, io };

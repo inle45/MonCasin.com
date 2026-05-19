@@ -22,8 +22,9 @@ const GAMES = [
   { href: '/games/dice',     emoji: '🎲', label: 'Dice'     },
   { href: '/games/mines',    emoji: '💣', label: 'Mines'    },
   { href: '/games/hilo',     emoji: '🃏', label: 'Hi-Lo'    },
-  { href: '/games/limbo',    emoji: '🌙', label: 'Limbo'    },
-  { href: '/games/plinko',   emoji: '🪙', label: 'Plinko'   },
+  { href: '/games/limbo',      emoji: '🌙', label: 'Limbo'      },
+  { href: '/games/plinko',     emoji: '🪙', label: 'Plinko'     },
+  { href: '/games/blackjack',  emoji: '🃏', label: 'Blackjack'  },
 ];
 
 const MORE_LINKS = [

@@ -17,14 +17,22 @@ export interface LiveEvent {
   ts: number;
 }
 
+export interface HappyHourStatus {
+  active: boolean;
+  endsAt?: string;
+  nextAt?: string;
+  multiplier?: number;
+}
+
 interface SocketContextType {
   socket: Socket | null;
   connected: boolean;
   jackpot: number;
   liveEvents: LiveEvent[];
+  happyHour: HappyHourStatus;
 }
 
-const SocketContext = createContext<SocketContextType>({ socket: null, connected: false, jackpot: 0, liveEvents: [] });
+const SocketContext = createContext<SocketContextType>({ socket: null, connected: false, jackpot: 0, liveEvents: [], happyHour: { active: false } });
 
 export function SocketProvider({ children }: { children: ReactNode }) {
   const { token, updateUser } = useAuth();
@@ -32,6 +40,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [jackpot, setJackpot] = useState(0);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
+  const [happyHour, setHappyHour] = useState<HappyHourStatus>({ active: false });
 
   useEffect(() => {
     if (!token) {
@@ -93,7 +102,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       toast(`🏦 ${data.deducted.toLocaleString('fr-FR')} F€ déduits pour le remboursement du prêt`, { icon: '🏦', duration: 4000 });
     });
 
-    s.on('xp:levelup', (data: { level: number; xp: number; reward: number }) => {
+    s.on('xp:levelup', (data: { level: number; xp: number; reward: number; chestReward: number }) => {
       sfx.achievement();
       updateUser({ level: data.level, xp: data.xp });
       toast.custom(() => (
@@ -102,12 +111,43 @@ export function SocketProvider({ children }: { children: ReactNode }) {
           <div>
             <div className="text-purple-400 font-bold text-sm">Level Up !</div>
             <div className="text-white font-bold">Niveau {data.level} atteint</div>
-            {data.reward > 0 && (
-              <div className="text-green-400 text-xs mt-1 font-bold">+{formatBalance(data.reward)} F€ de récompense</div>
-            )}
+            {data.reward > 0 && <div className="text-green-400 text-xs mt-1 font-bold">+{formatBalance(data.reward)} F€</div>}
           </div>
         </div>
-      ), { duration: 6000 });
+      ), { duration: 4000 });
+
+      if (data.chestReward > 0) {
+        setTimeout(() => {
+          sfx.coin();
+          toast.custom(() => (
+            <div className="bg-casino-card border border-yellow-500/50 rounded-xl px-5 py-4 shadow-xl flex items-center gap-3 max-w-sm">
+              <span className="text-5xl animate-bounce">📦</span>
+              <div>
+                <div className="text-yellow-400 font-bold text-sm">Coffre de niveau !</div>
+                <div className="text-white font-bold">Tu as ouvert un coffre</div>
+                <div className="text-green-400 text-xs mt-1 font-bold">+{formatBalance(data.chestReward)} F€ à l'intérieur !</div>
+              </div>
+            </div>
+          ), { duration: 6000 });
+        }, 1500);
+      }
+    });
+
+    s.on('happyhour:update', (data: HappyHourStatus) => {
+      setHappyHour(data);
+      if (data.active) {
+        sfx.achievement();
+        toast.custom(() => (
+          <div className="bg-casino-card border border-orange-500/50 rounded-xl px-5 py-4 shadow-xl flex items-center gap-3 max-w-sm">
+            <span className="text-4xl">🎉</span>
+            <div>
+              <div className="text-orange-400 font-bold text-sm">Happy Hour !</div>
+              <div className="text-white font-bold">+50% sur tous les gains</div>
+              <div className="text-gray-400 text-xs mt-1">Vendredi & Samedi soir</div>
+            </div>
+          </div>
+        ), { duration: 8000 });
+      }
     });
 
     s.on('pay:confirmed', (data) => {
@@ -119,7 +159,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   }, [token]);
 
   return (
-    <SocketContext.Provider value={{ socket, connected, jackpot, liveEvents }}>
+    <SocketContext.Provider value={{ socket, connected, jackpot, liveEvents, happyHour }}>
       {children}
     </SocketContext.Provider>
   );

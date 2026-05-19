@@ -6,6 +6,7 @@ import { SocketProvider } from '@/context/SocketContext';
 import { Toaster } from 'react-hot-toast';
 import KeepAlive from '@/components/ui/KeepAlive';
 import LiveFeed from '@/components/ui/LiveFeed';
+import HappyHourBanner from '@/components/ui/HappyHourBanner';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <SocketProvider>
             <KeepAlive />
+            <HappyHourBanner />
             <LiveFeed />
             {children}
             <Toaster
