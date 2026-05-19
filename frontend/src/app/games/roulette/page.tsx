@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
@@ -10,6 +10,7 @@ import { formatBalance } from '@/lib/api';
 import { RouletteBetItem } from '@/types';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
+import { sfx } from '@/lib/sfx';
 
 const RED_NUMBERS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
 const NUMBERS_LAYOUT = [
@@ -100,6 +101,7 @@ export default function RoulettePage() {
 
   // Jetons de tous les joueurs sur le tapis : key = "type-value"
   const [playerChips, setPlayerChips] = useState<Record<string, ChipStack[]>>({});
+  const spinIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) router.push('/login');
@@ -138,9 +140,22 @@ export default function RoulettePage() {
     socket.on('roulette:spinning', () => {
       setGameState('spinning');
       setSpinning(true);
+      // Tick rapide simulant la bille qui tourne
+      let speed = 120;
+      let ticks = 0;
+      const spin = () => {
+        sfx.tick(1);
+        ticks++;
+        // Ralentir progressivement après 20 ticks
+        if (ticks > 20) speed = Math.min(speed + 18, 500);
+        spinIntervalRef.current = setTimeout(spin, speed);
+      };
+      spinIntervalRef.current = setTimeout(spin, speed);
     });
 
     socket.on('roulette:result', (data) => {
+      // Stopper le tick de la bille
+      if (spinIntervalRef.current) { clearTimeout(spinIntervalRef.current); spinIntervalRef.current = null; }
       setGameState('result');
       setSpinning(false);
       setWinningNumber(data.winningNumber);
@@ -152,14 +167,17 @@ export default function RoulettePage() {
         setLastResult({ win: myResult.totalWin, bet: myResult.totalBet });
         updateUser({ balance: user!.balance - myResult.totalBet + myResult.totalWin });
         if (myResult.totalWin > 0) {
+          myResult.totalWin >= 1000 ? sfx.bigWin() : sfx.win();
           toast.success(`🎉 Gagné ${formatBalance(myResult.totalWin)} !`);
         } else {
+          sfx.lose();
           toast.error(`Perdu ${formatBalance(myResult.totalBet)}`);
         }
       }
     });
 
     socket.on('roulette:bet_confirmed', (data) => {
+      sfx.ping();
       updateUser({ balance: data.newBalance });
       setBetSent(true);
       toast.success(`Mise de ${formatBalance(data.totalBet)} confirmée !`);
@@ -198,11 +216,13 @@ export default function RoulettePage() {
       socket.off('roulette:bet_confirmed');
       socket.off('roulette:bet_placed');
       socket.off('error');
+      if (spinIntervalRef.current) { clearTimeout(spinIntervalRef.current); spinIntervalRef.current = null; }
     };
   }, [socket, user, updateUser, clearAllChips]);
 
   const addBet = (type: RouletteBetItem['type'], value: string | number) => {
     if (betSent || gameState !== 'betting') return;
+    sfx.click();
     const totalBet = selectedBets.reduce((s, b) => s + b.amount, 0);
     if (totalBet + chipAmount > (user?.balance || 0)) { toast.error('Solde insuffisant'); return; }
     setSelectedBets(prev => {
@@ -218,6 +238,7 @@ export default function RoulettePage() {
 
   const placeBets = () => {
     if (!socket || betSent || selectedBets.length === 0) return;
+    sfx.cashout();
     socket.emit('roulette:bet', { bets: selectedBets });
   };
 
