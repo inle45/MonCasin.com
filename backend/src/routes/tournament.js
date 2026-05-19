@@ -4,6 +4,75 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
+async function distributeTournamentRewards(io) {
+  try {
+    const now = new Date();
+    const weekStart = new Date(now);
+    const day = weekStart.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    weekStart.setDate(weekStart.getDate() + diff);
+    weekStart.setHours(0, 0, 0, 0);
+    const prevWeekStart = new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const bets = await prisma.bet.findMany({
+      where: { createdAt: { gte: prevWeekStart, lt: weekStart } },
+      select: { userId: true, amount: true, result: true },
+    });
+
+    if (bets.length === 0) return;
+
+    const profits = new Map();
+    for (const bet of bets) {
+      const prev = profits.get(bet.userId) || 0;
+      profits.set(bet.userId, prev + (bet.result ?? 0) - bet.amount);
+    }
+
+    const volume = bets.reduce((s, b) => s + b.amount, 0);
+    const cagnotte = Math.round(volume * 0.05);
+    if (cagnotte <= 0) return;
+
+    const sorted = [...profits.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const PARTS = [0.5, 0.3, 0.2];
+
+    for (let i = 0; i < sorted.length; i++) {
+      const [userId] = sorted[i];
+      const prize = Math.round(cagnotte * PARTS[i]);
+      if (prize <= 0) continue;
+
+      await prisma.$transaction([
+        prisma.user.update({ where: { id: userId }, data: { balance: { increment: prize } } }),
+        prisma.transaction.create({
+          data: {
+            userId,
+            type: 'BONUS',
+            amount: prize,
+            description: `Tournoi hebdomadaire — ${i === 0 ? '🥇 1ère' : i === 1 ? '🥈 2ème' : '🥉 3ème'} place`,
+          },
+        }),
+      ]);
+
+      if (io) {
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { pseudo: true } });
+        if (user) {
+          const medals = ['🥇', '🥈', '🥉'];
+          io.emit('livefeed:event', {
+            id: `tournament-${Date.now()}-${i}`,
+            pseudo: user.pseudo,
+            emoji: medals[i],
+            message: `remporte la ${i === 0 ? '1ère' : i === 1 ? '2ème' : '3ème'} place du tournoi hebdomadaire`,
+            amount: prize,
+            positive: true,
+          });
+        }
+      }
+    }
+
+    console.log(`🏆 Tournoi hebdomadaire distribué — cagnotte: ${cagnotte} F€`);
+  } catch (err) {
+    console.error('Erreur distribution tournoi:', err);
+  }
+}
+
 // Début de la semaine (lundi 00:00)
 function getWeekStart() {
   const now = new Date();
@@ -79,3 +148,4 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.distributeTournamentRewards = distributeTournamentRewards;

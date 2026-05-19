@@ -110,44 +110,81 @@ export default function PlinkoPage() {
   const betVal = parseFloat(bet) || 0;
   const mults = MULTIPLIERS[risk][rows];
 
+  // Auto-bet
+  const [autoMode, setAutoMode] = useState(false);
+  const [autoCount, setAutoCount] = useState(10);
+  const [autoRemaining, setAutoRemaining] = useState(0);
+  const [autoStats, setAutoStats] = useState({ wins: 0, losses: 0, profit: 0 });
+  const autoStopRef = useRef(false);
+
+  async function playOnce(bv: number, r: Risk, rowCount: Rows): Promise<{ multiplier: number; payout: number; newBalance: number } | null> {
+    setResult(null);
+    setAnimStep(0);
+    try {
+      const res = await api.post('/games/plinko/play', { bet: bv, risk: r, rows: rowCount });
+      const data = res.data;
+      setResult(data);
+      updateUser({ balance: data.newBalance });
+
+      return new Promise(resolve => {
+        let step = 0;
+        animRef.current = setInterval(() => {
+          step++;
+          setAnimStep(step);
+          if (step <= rowCount) sfx.tick(0.3);
+          if (step > rowCount + 1) {
+            clearInterval(animRef.current!);
+            data.multiplier >= 1 ? sfx.win() : sfx.lose();
+            if (data.payout >= 1000) sfx.bigWin();
+            setHistory(prev => [{ multiplier: data.multiplier, payout: data.payout, bet: bv }, ...prev].slice(0, 15));
+            resolve(data);
+          }
+        }, 100);
+      });
+    } catch {
+      return null;
+    }
+  }
+
   async function play() {
     if (playing || betVal <= 0) return;
     if ((user?.balance ?? 0) < betVal) { toast.error('Solde insuffisant'); return; }
 
     setPlaying(true);
-    setResult(null);
-    setAnimStep(0);
 
-    try {
-      const r = await api.post('/games/plinko/play', { bet: betVal, risk, rows });
-      const data = r.data;
-      setResult(data);
-      updateUser({ balance: data.newBalance });
+    if (autoMode && autoCount > 1) {
+      autoStopRef.current = false;
+      setAutoRemaining(autoCount);
+      setAutoStats({ wins: 0, losses: 0, profit: 0 });
 
-      // Animer la balle step by step
-      let step = 0;
-      animRef.current = setInterval(() => {
-        step++;
-        setAnimStep(step);
-        if (step <= rows) sfx.tick(0.3);
-        if (step > rows + 1) {
-          clearInterval(animRef.current!);
-          if (data.multiplier >= 1) {
-            sfx.win();
-            if (data.payout >= 1000) sfx.bigWin();
-            toast.success(`🪙 x${data.multiplier} — +${formatBalance(data.payout)} F€`);
-          } else {
-            sfx.lose();
-            toast.error(`💥 x${data.multiplier}`);
-          }
-          setHistory(prev => [{ multiplier: data.multiplier, payout: data.payout, bet: betVal }, ...prev].slice(0, 15));
-          setPlaying(false);
-        }
-      }, 120);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Erreur');
-      setPlaying(false);
+      let balance = user?.balance ?? 0;
+      let wins = 0, losses = 0, profit = 0;
+
+      for (let i = 0; i < autoCount; i++) {
+        if (autoStopRef.current) break;
+        if (balance < betVal) { toast.error('Solde insuffisant — auto-bet arrêté'); break; }
+        setAutoRemaining(autoCount - i);
+        const data = await playOnce(betVal, risk, rows);
+        if (!data) break;
+        balance = data.newBalance;
+        if (data.multiplier >= 1) { wins++; profit += data.payout - betVal; }
+        else { losses++; profit -= betVal; }
+        setAutoStats({ wins, losses, profit });
+        if (i < autoCount - 1 && !autoStopRef.current) await new Promise(r => setTimeout(r, 200));
+      }
+
+      setAutoRemaining(0);
+      toast.success(`Auto-bet terminé — ${wins}W / ${losses}L — ${profit >= 0 ? '+' : ''}${formatBalance(profit)}`);
+    } else {
+      const data = await playOnce(betVal, risk, rows);
+      if (data) {
+        data.multiplier >= 1
+          ? toast.success(`🪙 x${data.multiplier} — +${formatBalance(data.payout)} F€`)
+          : toast.error(`💥 x${data.multiplier}`);
+      }
     }
+
+    setPlaying(false);
   }
 
   useEffect(() => () => { if (animRef.current) clearInterval(animRef.current); }, []);
@@ -231,13 +268,53 @@ export default function PlinkoPage() {
             </div>
           </div>
 
+          {/* Auto-bet */}
+          <div className="rounded-xl p-3 flex flex-col gap-2" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(99,102,241,0.15)' }}>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-gray-300">🤖 Auto-bet</span>
+              <button onClick={() => setAutoMode(m => !m)}
+                style={{ background: autoMode ? '#6366f1' : 'rgba(255,255,255,0.1)', width: 44, height: 24, borderRadius: 12, position: 'relative', transition: 'background 0.2s' }}>
+                <div style={{ position: 'absolute', top: 2, left: autoMode ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
+              </button>
+            </div>
+            {autoMode && (
+              <div className="flex gap-1.5 flex-wrap">
+                {[5, 10, 25, 50, 100].map(n => (
+                  <button key={n} onClick={() => setAutoCount(n)}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold"
+                    style={{ background: autoCount === n ? '#6366f1' : 'rgba(255,255,255,0.07)', color: autoCount === n ? '#fff' : '#9ca3af' }}>
+                    {n}×
+                  </button>
+                ))}
+              </div>
+            )}
+            {autoMode && autoRemaining > 0 && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-indigo-400 animate-pulse">⚡ {autoRemaining} restants</span>
+                <div className="flex gap-3">
+                  <span className="text-green-400">{autoStats.wins}W</span>
+                  <span className="text-red-400">{autoStats.losses}L</span>
+                  <span className={autoStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}>
+                    {autoStats.profit >= 0 ? '+' : ''}{formatBalance(autoStats.profit)}
+                  </span>
+                </div>
+                <button onClick={() => { autoStopRef.current = true; }} className="text-red-400 font-bold">Stop</button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={play}
             disabled={playing || betVal <= 0}
             className="w-full py-3.5 rounded-xl font-black text-white disabled:opacity-50 active:scale-95 transition-all"
             style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 0 20px rgba(99,102,241,0.35)' }}
           >
-            {playing ? '🪙 En vol...' : 'Lancer'}
+            {playing && autoRemaining > 0
+              ? `🤖 Auto ${autoCount - autoRemaining + 1}/${autoCount}...`
+              : playing ? '🪙 En vol...'
+              : autoMode && autoCount > 1 ? `🤖 AUTO x${autoCount}`
+              : 'Lancer'
+            }
           </button>
         </div>
 

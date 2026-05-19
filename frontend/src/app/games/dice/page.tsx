@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/layout/Navbar';
 import api, { formatBalance } from '@/lib/api';
 import { sfx } from '@/lib/sfx';
+import toast from 'react-hot-toast';
 
 const MISES = [10, 25, 50, 100, 250, 500, 1000];
 // Nombre de combinaisons par total (2 dés)
@@ -49,42 +50,85 @@ export default function DicePage() {
   const [result, setResult] = useState<{ de1:number; de2:number; total:number; gagne:boolean; gain:number; multiplicateur:number } | null>(null);
   const [displayDice, setDisplayDice] = useState<[number,number]>([1,1]);
 
+  // Auto-bet
+  const [autoMode, setAutoMode] = useState(false);
+  const [autoCount, setAutoCount] = useState(10);
+  const [autoRemaining, setAutoRemaining] = useState(0);
+  const [autoStats, setAutoStats] = useState({ wins: 0, losses: 0, profit: 0 });
+  const autoStopRef = useRef(false);
+
   const mult = calcMult(pivot, mode);
   const prob = Math.round((mode === 'over'
     ? Object.entries(COMBOS).filter(([s]) => parseInt(s) > pivot).reduce((a,[,v]) => a+v, 0)
     : Object.entries(COMBOS).filter(([s]) => parseInt(s) < pivot).reduce((a,[,v]) => a+v, 0)
   ) / 36 * 100);
 
+  const rollOnce = useCallback(async (currentMise: number, currentPivot: number, currentMode: 'over' | 'under'): Promise<{ newBalance: number; gagne: boolean; gain: number; de1: number; de2: number; total: number; multiplicateur: number } | null> => {
+    const anim = setInterval(() => {
+      setDisplayDice([Math.ceil(Math.random()*6), Math.ceil(Math.random()*6)]);
+    }, 80);
+
+    return new Promise((resolve) => {
+      api.post('/games/dice/roll', { amount: currentMise, target: currentPivot, mode: currentMode })
+        .then(res => {
+          const data = res.data;
+          setTimeout(() => {
+            clearInterval(anim);
+            setDisplayDice([data.de1, data.de2]);
+            setResult(data);
+            updateUser({ balance: data.newBalance });
+            data.gagne ? sfx.win() : sfx.lose();
+            resolve(data);
+          }, 700);
+        })
+        .catch(() => {
+          clearInterval(anim);
+          resolve(null);
+        });
+    });
+  }, [updateUser]);
+
   const roll = useCallback(async () => {
     if (rolling || !user || user.balance < mise) return;
     setRolling(true);
     setResult(null);
-
     sfx.click();
-    // Animation des dés
-    let ticks = 0;
-    const anim = setInterval(() => {
-      setDisplayDice([Math.ceil(Math.random()*6), Math.ceil(Math.random()*6)]);
-      if (ticks % 3 === 0) sfx.diceRoll();
-      if (++ticks > 12) clearInterval(anim);
-    }, 80);
 
-    try {
-      const res = await api.post('/games/dice/roll', { amount: mise, target: pivot, mode });
-      const data = res.data;
-      setTimeout(() => {
-        clearInterval(anim);
-        setDisplayDice([data.de1, data.de2]);
-        setResult(data);
-        updateUser({ balance: data.newBalance });
-        data.gagne ? sfx.win() : sfx.lose();
-        setRolling(false);
-      }, 1050);
-    } catch {
-      clearInterval(anim);
-      setRolling(false);
+    if (autoMode && autoCount > 1) {
+      autoStopRef.current = false;
+      setAutoRemaining(autoCount);
+      setAutoStats({ wins: 0, losses: 0, profit: 0 });
+
+      let balance = user.balance;
+      let wins = 0, losses = 0, profit = 0;
+
+      for (let i = 0; i < autoCount; i++) {
+        if (autoStopRef.current) break;
+        if (balance < mise) { toast.error('Solde insuffisant — auto-bet arrêté'); break; }
+
+        setAutoRemaining(autoCount - i);
+        const data = await rollOnce(mise, pivot, mode);
+        if (!data) break;
+
+        balance = data.newBalance;
+        if (data.gagne) { wins++; profit += data.gain - mise; }
+        else { losses++; profit -= mise; }
+        setAutoStats({ wins, losses, profit });
+
+        if (i < autoCount - 1 && !autoStopRef.current) {
+          await new Promise(r => setTimeout(r, 400));
+        }
+      }
+
+      setAutoRemaining(0);
+      toast.success(`Auto-bet terminé — ${wins}W / ${losses}L — ${profit >= 0 ? '+' : ''}${formatBalance(profit)}`);
+    } else {
+      const data = await rollOnce(mise, pivot, mode);
+      if (!data) { setRolling(false); return; }
     }
-  }, [rolling, user, mise, pivot, mode, updateUser]);
+
+    setRolling(false);
+  }, [rolling, user, mise, pivot, mode, autoMode, autoCount, rollOnce]);
 
   return (
     <div className="min-h-screen bg-casino-dark text-white">
@@ -199,6 +243,48 @@ export default function DicePage() {
           ))}
         </div>
 
+        {/* Auto-bet toggle */}
+        <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: 'rgba(30,27,75,0.4)', border: '1px solid rgba(245,158,11,0.1)' }}>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold text-gray-300">🤖 Auto-bet</span>
+            <button
+              onClick={() => setAutoMode(m => !m)}
+              className="relative w-12 h-6 rounded-full transition-all"
+              style={{ background: autoMode ? '#f59e0b' : 'rgba(255,255,255,0.1)' }}
+            >
+              <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
+                style={{ left: autoMode ? '26px' : '2px' }} />
+            </button>
+          </div>
+          {autoMode && (
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-400">Nombre de paris</span>
+              <div className="flex gap-1.5 flex-wrap flex-1 justify-end">
+                {[5, 10, 25, 50, 100].map(n => (
+                  <button key={n} onClick={() => setAutoCount(n)}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+                    style={{ background: autoCount === n ? '#f59e0b' : 'rgba(255,255,255,0.07)', color: autoCount === n ? '#000' : '#9ca3af' }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {autoMode && autoRemaining > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-indigo-400 animate-pulse">⚡ {autoRemaining} paris restants</span>
+              <div className="flex gap-4 text-xs">
+                <span className="text-green-400">✅ {autoStats.wins}W</span>
+                <span className="text-red-400">❌ {autoStats.losses}L</span>
+                <span className={autoStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}>
+                  {autoStats.profit >= 0 ? '+' : ''}{formatBalance(autoStats.profit)}
+                </span>
+              </div>
+              <button onClick={() => { autoStopRef.current = true; }} className="text-xs text-red-400 font-bold hover:text-red-300">Stop</button>
+            </div>
+          )}
+        </div>
+
         {/* Bouton lancer */}
         <motion.button
           whileTap={!rolling ? { scale: 0.96 } : {}}
@@ -212,12 +298,17 @@ export default function DicePage() {
             cursor: rolling ? 'not-allowed' : 'pointer',
           }}
         >
-          {rolling ? (
+          {rolling && autoRemaining > 0 ? (
+            <span className="flex items-center justify-center gap-2">
+              <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.4, repeat: Infinity, ease: 'linear' }}>🎲</motion.span>
+              Auto {autoCount - autoRemaining + 1}/{autoCount}...
+            </span>
+          ) : rolling ? (
             <span className="flex items-center justify-center gap-2">
               <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.4, repeat: Infinity, ease: 'linear' }}>🎲</motion.span>
               Lancer...
             </span>
-          ) : `🎲 LANCER — ${formatBalance(mise)}`}
+          ) : autoMode && autoCount > 1 ? `🤖 AUTO x${autoCount} — ${formatBalance(mise * autoCount)}` : `🎲 LANCER — ${formatBalance(mise)}`}
         </motion.button>
 
         <div className="text-center text-sm text-gray-400">

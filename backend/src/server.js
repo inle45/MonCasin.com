@@ -14,6 +14,7 @@ const { router: inventoryRoutes } = require('./routes/inventory');
 const diceRoutes = require('./routes/dice');
 const minesRoutes = require('./routes/mines');
 const tournamentRoutes = require('./routes/tournament');
+const { distributeTournamentRewards } = tournamentRoutes;
 const questRoutes = require('./routes/quests');
 const hiloRoutes = require('./routes/hilo');
 const { router: lotteryRoutes, checkPendingDraw } = require('./routes/lottery');
@@ -105,10 +106,13 @@ server.listen(PORT, () => {
   // Vérifier les tirages en attente 5s après démarrage puis toutes les heures
   setTimeout(checkPendingDraw, 5000);
   setInterval(checkPendingDraw, 60 * 60 * 1000);
-  // Wager Race : distribue les récompenses chaque lundi à 00h05
+  // Wager Race + Tournoi : distribue les récompenses chaque lundi à 00h05
   setInterval(() => {
     const now = new Date();
-    if (now.getDay() === 1 && now.getHours() === 0) distributeRaceRewards();
+    if (now.getDay() === 1 && now.getHours() === 0) {
+      distributeRaceRewards();
+      distributeTournamentRewards(io);
+    }
   }, 60 * 60 * 1000);
 
   // Broadcast Happy Hour status toutes les minutes

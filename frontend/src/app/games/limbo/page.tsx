@@ -1,5 +1,7 @@
 'use client';
 
+'use client';
+
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -29,47 +31,77 @@ export default function LimboPage() {
   const targetVal = parseFloat(target) || 2;
   const payout = betVal * targetVal;
 
-  async function play() {
-    if (playing || betVal <= 0 || targetVal < 1.01) return;
-    if ((user?.balance ?? 0) < betVal) { toast.error('Solde insuffisant'); return; }
+  // Auto-bet
+  const [autoMode, setAutoMode] = useState(false);
+  const [autoCount, setAutoCount] = useState(10);
+  const [autoRemaining, setAutoRemaining] = useState(0);
+  const [autoStats, setAutoStats] = useState({ wins: 0, losses: 0, profit: 0 });
+  const autoStopRef = useRef(false);
 
-    setPlaying(true);
-    setResult(null);
-    setWon(null);
-
-    // animation compteur montant
+  async function playOnce(bv: number, tv: number): Promise<{ result: number; won: boolean; payout: number; newBalance: number } | null> {
     let t = 1.01;
     animRef.current = setInterval(() => {
       t = t * 1.08 + 0.05;
       setDisplayNum(parseFloat(t.toFixed(2)));
     }, 40);
+    setResult(null);
+    setWon(null);
 
     try {
-      const r = await api.post('/games/limbo/play', { bet: betVal, target: targetVal });
+      const r = await api.post('/games/limbo/play', { bet: bv, target: tv });
       clearInterval(animRef.current!);
       const { result: res, won: w, payout: pay, newBalance } = r.data;
-
       setDisplayNum(res);
       setResult(res);
       setWon(w);
       updateUser({ balance: newBalance });
+      w ? sfx.win() : sfx.lose();
+      setHistory(prev => [{ result: res, target: tv, won: w, payout: pay }, ...prev].slice(0, 20));
+      return { result: res, won: w, payout: pay, newBalance };
+    } catch {
+      clearInterval(animRef.current!);
+      return null;
+    }
+  }
 
-      if (w) {
-        sfx.win();
-        if (pay >= 1000) sfx.bigWin();
-        toast.success(`🌙 x${res} — Tu gagnes ${formatBalance(pay)} F€ !`);
-      } else {
-        sfx.lose();
-        toast.error(`💥 x${res} — Raté (visais x${targetVal})`);
+  async function play() {
+    if (playing || betVal <= 0 || targetVal < 1.01) return;
+    if ((user?.balance ?? 0) < betVal) { toast.error('Solde insuffisant'); return; }
+
+    setPlaying(true);
+
+    if (autoMode && autoCount > 1) {
+      autoStopRef.current = false;
+      setAutoRemaining(autoCount);
+      setAutoStats({ wins: 0, losses: 0, profit: 0 });
+
+      let balance = user?.balance ?? 0;
+      let wins = 0, losses = 0, profit = 0;
+
+      for (let i = 0; i < autoCount; i++) {
+        if (autoStopRef.current) break;
+        if (balance < betVal) { toast.error('Solde insuffisant — auto-bet arrêté'); break; }
+        setAutoRemaining(autoCount - i);
+        const data = await playOnce(betVal, targetVal);
+        if (!data) break;
+        balance = data.newBalance;
+        if (data.won) { wins++; profit += data.payout - betVal; }
+        else { losses++; profit -= betVal; }
+        setAutoStats({ wins, losses, profit });
+        if (i < autoCount - 1 && !autoStopRef.current) await new Promise(r => setTimeout(r, 350));
       }
 
-      setHistory(prev => [{ result: res, target: targetVal, won: w, payout: pay }, ...prev].slice(0, 20));
-    } catch (err: any) {
-      clearInterval(animRef.current!);
-      toast.error(err?.response?.data?.error || 'Erreur');
-    } finally {
-      setPlaying(false);
+      setAutoRemaining(0);
+      toast.success(`Auto-bet terminé — ${wins}W / ${losses}L — ${profit >= 0 ? '+' : ''}${formatBalance(profit)}`);
+    } else {
+      const data = await playOnce(betVal, targetVal);
+      if (data) {
+        if (data.won) toast.success(`🌙 x${data.result} — +${formatBalance(data.payout)} F€ !`);
+        else toast.error(`💥 x${data.result} — Raté (visais x${targetVal})`);
+      }
     }
+
+    setPlaying(false);
   }
 
   return (
@@ -167,13 +199,55 @@ export default function LimboPage() {
             <span className="text-green-400 font-bold">{formatBalance(payout)} F€</span>
           </div>
 
+          {/* Auto-bet */}
+          <div className="rounded-xl p-3 flex flex-col gap-2" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(99,102,241,0.15)' }}>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-gray-300">🤖 Auto-bet</span>
+              <button onClick={() => setAutoMode(m => !m)}
+                className="relative w-11 h-5.5 rounded-full transition-all flex-shrink-0"
+                style={{ background: autoMode ? '#6366f1' : 'rgba(255,255,255,0.1)', width: 44, height: 24 }}>
+                <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
+                  style={{ left: autoMode ? '22px' : '2px' }} />
+              </button>
+            </div>
+            {autoMode && (
+              <div className="flex gap-1.5 flex-wrap">
+                {[5, 10, 25, 50, 100].map(n => (
+                  <button key={n} onClick={() => setAutoCount(n)}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold"
+                    style={{ background: autoCount === n ? '#6366f1' : 'rgba(255,255,255,0.07)', color: autoCount === n ? '#fff' : '#9ca3af' }}>
+                    {n}×
+                  </button>
+                ))}
+              </div>
+            )}
+            {autoMode && autoRemaining > 0 && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-indigo-400 animate-pulse">⚡ {autoRemaining} restants</span>
+                <div className="flex gap-3">
+                  <span className="text-green-400">{autoStats.wins}W</span>
+                  <span className="text-red-400">{autoStats.losses}L</span>
+                  <span className={autoStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}>
+                    {autoStats.profit >= 0 ? '+' : ''}{formatBalance(autoStats.profit)}
+                  </span>
+                </div>
+                <button onClick={() => { autoStopRef.current = true; }} className="text-red-400 font-bold">Stop</button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={play}
             disabled={playing || betVal <= 0 || targetVal < 1.01}
             className="w-full py-4 rounded-xl font-black text-lg text-white transition-all disabled:opacity-50 active:scale-95"
             style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 0 25px rgba(99,102,241,0.4)' }}
           >
-            {playing ? '🌙 Vol en cours...' : 'Lancer'}
+            {playing && autoRemaining > 0
+              ? `🤖 Auto ${autoCount - autoRemaining + 1}/${autoCount}...`
+              : playing ? '🌙 Vol en cours...'
+              : autoMode && autoCount > 1 ? `🤖 AUTO x${autoCount}`
+              : 'Lancer'
+            }
           </button>
         </div>
 
