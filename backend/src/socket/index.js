@@ -63,6 +63,7 @@ function initSocket(io) {
     socket.join('lobby');
     socket.join('crash');
     socket.join('roulette');
+    socket.join(user.id); // pour les événements personnels (xp:levelup, etc.)
 
     socket.emit('init', {
       user,
