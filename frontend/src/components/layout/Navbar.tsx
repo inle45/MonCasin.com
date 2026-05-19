@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { formatBalance } from '@/lib/api';
-import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy } from 'lucide-react';
+import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const GRADE_ICONS: Record<string, string> = {
@@ -23,12 +23,13 @@ const GAMES = [
   { href: '/games/mines',   emoji: '💣', label: 'Mines'    },
 ];
 
-// Menu "Plus" — boutique, bonus, inventaire, tournoi
+// Menu "Plus" — quêtes, tournoi, boutique, bonus, inventaire
 const MORE_LINKS = [
-  { href: '/tournament', label: 'Tournoi',  icon: Trophy      },
-  { href: '/shop',       label: 'Boutique', icon: ShoppingBag },
-  { href: '/bonuses',    label: 'Bonus',    icon: Gift        },
-  { href: '/inventory',  label: 'Mon sac',  icon: Package     },
+  { href: '/quests',     label: 'Quêtes',   icon: ClipboardList },
+  { href: '/tournament', label: 'Tournoi',  icon: Trophy        },
+  { href: '/shop',       label: 'Boutique', icon: ShoppingBag   },
+  { href: '/bonuses',    label: 'Bonus',    icon: Gift          },
+  { href: '/inventory',  label: 'Mon sac',  icon: Package       },
 ];
 
 export default function Navbar() {

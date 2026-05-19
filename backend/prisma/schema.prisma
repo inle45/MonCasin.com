@@ -31,6 +31,7 @@ model User {
   loansGiven        Loan[]           @relation("LoanLender")
   loansTaken        Loan[]           @relation("LoanBorrower")
   inventoryItems    InventoryItem[]
+  dailyQuests       UserDailyQuest[]
 
   @@map("users")
 }
@@ -211,6 +212,19 @@ model InventoryItem {
   createdAt    DateTime  @default(now())
 
   @@map("inventory_items")
+}
+
+model UserDailyQuest {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  questKey  String
+  day       String    // "YYYY-MM-DD"
+  claimedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, questKey, day])
+  @@map("user_daily_quests")
 }
 
 enum ItemType {

@@ -471,17 +471,18 @@ function initSocket(io) {
     return deducted;
   }
 
-  async function grantAchievement(socket, userId, achievementId, io) {
+  async function grantAchievement(socket, userId, achievementKey, io) {
     try {
-      const ach = await prisma.achievement.findUnique({ where: { id: achievementId } });
+      // Look up by key (unique), not by id
+      const ach = await prisma.achievement.findUnique({ where: { key: achievementKey } });
       if (!ach) return;
 
       const already = await prisma.userAchievement.findUnique({
-        where: { userId_achievementId: { userId, achievementId } },
+        where: { userId_achievementId: { userId, achievementId: ach.id } },
       });
       if (already) return;
 
-      await prisma.userAchievement.create({ data: { userId, achievementId } });
+      await prisma.userAchievement.create({ data: { userId, achievementId: ach.id } });
 
       if (ach.reward > 0) {
         await prisma.$transaction([

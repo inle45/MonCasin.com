@@ -14,6 +14,7 @@ const { router: inventoryRoutes } = require('./routes/inventory');
 const diceRoutes = require('./routes/dice');
 const minesRoutes = require('./routes/mines');
 const tournamentRoutes = require('./routes/tournament');
+const questRoutes = require('./routes/quests');
 const { initSocket } = require('./socket/index');
 const { setIo } = require('./socket/ioInstance');
 
@@ -54,6 +55,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/games/dice', diceRoutes);
 app.use('/api/games/mines', minesRoutes);
 app.use('/api/tournament', tournamentRoutes);
+app.use('/api/quests', questRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
