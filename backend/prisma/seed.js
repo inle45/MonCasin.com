@@ -133,6 +133,26 @@ const achievements = [
 async function main() {
   console.log('🎰 Démarrage du seed de la base de données...');
 
+  // Supprimer les faux comptes de test s'ils existent encore
+  const fauxComptes = ['louis@moncasin.com', 'amaury@moncasin.com', 'noah@moncasin.com', 'matthieu@moncasin.com'];
+  for (const email of fauxComptes) {
+    const u = await prisma.user.findUnique({ where: { email } });
+    if (u) {
+      // Supprimer les données liées avant de supprimer l'utilisateur
+      await prisma.bet.deleteMany({ where: { userId: u.id } });
+      await prisma.transaction.deleteMany({ where: { userId: u.id } });
+      await prisma.chatMessage.deleteMany({ where: { userId: u.id } });
+      await prisma.shopPurchase.deleteMany({ where: { userId: u.id } });
+      await prisma.userAchievement.deleteMany({ where: { userId: u.id } });
+      await prisma.dailySpin.deleteMany({ where: { userId: u.id } });
+      await prisma.bailoutUsage.deleteMany({ where: { userId: u.id } });
+      await prisma.loan.deleteMany({ where: { borrowerId: u.id } });
+      await prisma.inventoryItem.deleteMany({ where: { userId: u.id } });
+      await prisma.user.delete({ where: { id: u.id } });
+      console.log(`🗑️  Faux compte supprimé : ${email}`);
+    }
+  }
+
   const hashedPassword = await bcrypt.hash('Casino2024!', 10);
 
   for (const userData of users) {
