@@ -143,17 +143,22 @@ function tournerRoue(mise) {
   return { multiplicateur: gagnant.multiplicateur, gain: Math.round(mise * gagnant.multiplicateur) };
 }
 
-// Casse des Coffres : génère 12 coffres (10 gains + 2 alarmes)
+// Casse des Coffres : génère 12 coffres (10 gains/loots + 2 alarmes)
 function genererCoffres(mise) {
+  const { tirerLoot } = require('./lootTable');
   const VALEURS_GAIN = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 7, 10];
-  const gains = VALEURS_GAIN.sort(() => Math.random() - 0.5)
-                             .map(m => Math.round(mise * m));
-  const coffres = gains.map(v => ({ estAlarme: false, valeur: v, revele: false }));
+  const valeursShuffled = VALEURS_GAIN.sort(() => Math.random() - 0.5);
+
+  const coffres = valeursShuffled.map((m) => {
+    const loot = tirerLoot();
+    if (loot) return { estAlarme: false, valeur: 0, item: loot, revele: false };
+    return { estAlarme: false, valeur: Math.round(mise * m), item: null, revele: false };
+  });
 
   // Insérer 2 alarmes à positions aléatoires
   const posAlarmes = new Set();
   while (posAlarmes.size < 2) posAlarmes.add(Math.floor(Math.random() * 12));
-  posAlarmes.forEach(pos => { coffres[pos] = { estAlarme: true, valeur: 0, revele: false }; });
+  posAlarmes.forEach(pos => { coffres[pos] = { estAlarme: true, valeur: 0, item: null, revele: false }; });
 
   return coffres;
 }

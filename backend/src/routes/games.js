@@ -126,8 +126,34 @@ router.post('/slots/bonus/chest', authenticate, async (req, res) => {
     const result = ouvrirCoffre(req.user.id, indexCoffre);
     if (result.erreur) return res.status(400).json({ error: result.erreur });
 
+    // Gain en F€
     if (!result.estAlarme && result.valeur > 0) {
       await prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: result.valeur } } });
+    }
+
+    // Loot item → ajout à l'inventaire
+    let itemCree = null;
+    if (!result.estAlarme && result.item) {
+      const { CATALOGUE } = require('../routes/inventory');
+      const meta = CATALOGUE[result.item] || {};
+      // Si l'item existe déjà en inventaire, incrémenter la quantité
+      const existant = await prisma.inventoryItem.findFirst({
+        where: { userId: req.user.id, type: result.item, usedAt: null },
+      });
+      if (existant) {
+        itemCree = await prisma.inventoryItem.update({
+          where: { id: existant.id }, data: { quantity: { increment: 1 } },
+        });
+      } else {
+        itemCree = await prisma.inventoryItem.create({
+          data: {
+            userId: req.user.id,
+            type: result.item,
+            quantity: 1,
+            isConsumable: meta.isConsumable !== false,
+          },
+        });
+      }
     }
 
     if (result.termine && result.gainTotal > 0) {
@@ -137,7 +163,7 @@ router.post('/slots/bonus/chest', authenticate, async (req, res) => {
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } });
-    res.json({ ...result, newBalance: user.balance });
+    res.json({ ...result, newBalance: user.balance, itemCree });
   } catch (err) {
     console.error('Erreur coffre:', err);
     res.status(500).json({ error: 'Erreur coffre' });

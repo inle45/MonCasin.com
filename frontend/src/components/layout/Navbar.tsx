@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { formatBalance } from '@/lib/api';
-import { Zap, Home, Trophy, ShoppingBag, LogOut, User } from 'lucide-react';
+import { Zap, Home, ShoppingBag, LogOut, Package } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const GRADE_COLORS: Record<string, string> = {
@@ -38,6 +38,7 @@ export default function Navbar() {
     { href: '/games/slots', label: 'Slots', icon: () => <span className="text-base">🎰</span> },
     { href: '/shop', label: 'Boutique', icon: ShoppingBag },
     { href: '/bonuses', label: 'Bonus', icon: () => <span className="text-base">🎁</span> },
+    { href: '/inventory', label: 'Sac', icon: Package },
   ];
 
   return (

@@ -10,6 +10,7 @@ const userRoutes = require('./routes/users');
 const shopRoutes = require('./routes/shop');
 const gameRoutes = require('./routes/games');
 const bonusRoutes = require('./routes/bonuses');
+const { router: inventoryRoutes } = require('./routes/inventory');
 const { initSocket } = require('./socket/index');
 const { setIo } = require('./socket/ioInstance');
 
@@ -46,6 +47,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/bonuses', bonusRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

@@ -30,6 +30,7 @@ model User {
   bailoutUsages     BailoutUsage[]
   loansGiven        Loan[]           @relation("LoanLender")
   loansTaken        Loan[]           @relation("LoanBorrower")
+  inventoryItems    InventoryItem[]
 
   @@map("users")
 }
@@ -197,4 +198,28 @@ model Loan {
   repaidAt     DateTime?
 
   @@map("loans")
+}
+
+model InventoryItem {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  type         ItemType
+  quantity     Int       @default(1)
+  isConsumable Boolean   @default(true)
+  usedAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@map("inventory_items")
+}
+
+enum ItemType {
+  TICKET_ROUE
+  PASS_FREE_SPINS
+  ASSURANCE_CRASH
+  FUMIGENE_ROULETTE
+  CONTRE_RACKET
+  DOUBLE_DAILY
+  EMOTE_VIP
+  SOUNDBITE
 }

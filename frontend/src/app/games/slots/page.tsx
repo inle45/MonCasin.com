@@ -72,11 +72,13 @@ interface WheelResult {
 interface ChestResult {
   estAlarme: boolean;
   valeur: number;
+  item: string | null;
   indexCoffre: number;
   gainTotal: number;
   termine: boolean;
-  coffres: Array<{ estAlarme: boolean; valeur: number; revele: boolean }>;
+  coffres: Array<{ estAlarme: boolean; valeur: number; item: string | null; revele: boolean }>;
   newBalance: number;
+  itemCree?: { type: string } | null;
 }
 
 // ── Cellule de rouleau ────────────────────────────────────────────────────────
@@ -220,6 +222,7 @@ export default function SlotsPage() {
   const [chestData, setChestData] = useState<{
     coffres: ChestResult['coffres'];
     gainTotal: number;
+    itemsObtenus: string[];
     mise: number;
     termine: boolean;
   } | null>(null);
@@ -330,8 +333,9 @@ export default function SlotsPage() {
                 }, 800);
               } else if (data.bonus.type === 'CHEST_GAME') {
                 setChestData({
-                  coffres: Array.from({ length: 12 }, () => ({ estAlarme: false, valeur: 0, revele: false })),
+                  coffres: Array.from({ length: 12 }, () => ({ estAlarme: false, valeur: 0, item: null, revele: false })),
                   gainTotal: 0,
+                  itemsObtenus: [],
                   mise,
                   termine: false,
                 });
@@ -353,12 +357,15 @@ export default function SlotsPage() {
       const res = await api.post('/games/slots/bonus/chest', { indexCoffre });
       const data: ChestResult = res.data;
       updateUser({ balance: data.newBalance });
-      setChestData({
+      setChestData(prev => ({
         coffres: data.coffres,
         gainTotal: data.gainTotal,
-        mise,
+        itemsObtenus: data.itemCree
+          ? [...(prev?.itemsObtenus ?? []), data.itemCree.type]
+          : prev?.itemsObtenus ?? [],
+        mise: prev?.mise ?? mise,
         termine: data.termine,
-      });
+      }));
     } catch {}
   }, [mise, updateUser]);
 
@@ -590,6 +597,7 @@ export default function SlotsPage() {
         <ChestGame
           coffres={chestData.coffres}
           gainTotal={chestData.gainTotal}
+          itemsObtenus={chestData.itemsObtenus}
           mise={chestData.mise}
           termine={chestData.termine}
           onPick={handleOpenChest}
