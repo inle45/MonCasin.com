@@ -200,6 +200,8 @@ export default function SlotsPage() {
   const [teasing, setTeasing] = useState(false);
   const [lastGain, setLastGain] = useState<number | null>(null);
   const [lastMult, setLastMult] = useState(0);
+  const [autoSpin, setAutoSpin] = useState(false);
+  const autoSpinRef = useRef(false);
 
   // Free spins
   const [enModeFreeSpin, setEnModeFreeSpin] = useState(false);
@@ -301,6 +303,7 @@ export default function SlotsPage() {
             }
 
             if (data.jackpotWin) {
+              autoSpinRef.current = false; setAutoSpin(false);
               setBigWinMontant(data.gainTotal);
               setBigWinMultiplicateur(9999);
               setBigWinVisible(true);
@@ -308,12 +311,24 @@ export default function SlotsPage() {
             }
 
             if (data.bigWin && !data.bonus) {
+              autoSpinRef.current = false; setAutoSpin(false);
               setBigWinMontant(data.gainTotal);
               setBigWinMultiplicateur(data.multiplicateurTotal);
               setBigWinVisible(true);
             }
 
+            // Auto-spin : relance si actif, pas de bonus, solde suffisant
+            if (autoSpinRef.current && !data.bonus && !data.bigWin && !data.jackpotWin) {
+              const nextBalance = data.newBalance;
+              if (!enModeFreeSpin && nextBalance < mise) {
+                autoSpinRef.current = false; setAutoSpin(false);
+              } else {
+                setTimeout(() => { if (autoSpinRef.current) handleSpin(); }, 600);
+              }
+            }
+
             if (data.bonus) {
+              autoSpinRef.current = false; setAutoSpin(false);
               if (data.bonus.type === 'FREE_SPINS') {
                 setEnModeFreeSpin(true);
                 setFreeSpinsRestants(data.bonus.freespins ?? 10);
@@ -541,9 +556,30 @@ export default function SlotsPage() {
           )}
         </motion.button>
 
-        {/* Solde */}
-        <div className="text-center text-sm text-gray-400">
-          Solde : <span className="text-casino-gold font-bold">{formatBalance(user?.balance ?? 0)}</span>
+        {/* Auto-spin + Solde */}
+        <div className="flex items-center justify-between px-1">
+          <div className="text-sm text-gray-400">
+            Solde : <span className="text-casino-gold font-bold">{formatBalance(user?.balance ?? 0)}</span>
+          </div>
+          <button
+            onClick={() => {
+              const next = !autoSpin;
+              autoSpinRef.current = next;
+              setAutoSpin(next);
+              if (next && !spinning) handleSpin();
+            }}
+            disabled={!enModeFreeSpin && (user?.balance ?? 0) < mise}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all"
+            style={{
+              background: autoSpin ? 'linear-gradient(135deg,#16a34a,#15803d)' : 'rgba(30,27,75,0.8)',
+              color: autoSpin ? '#fff' : '#6b7280',
+              border: autoSpin ? '1px solid #22c55e' : '1px solid rgba(245,158,11,0.2)',
+              boxShadow: autoSpin ? '0 0 12px rgba(34,197,94,0.4)' : 'none',
+            }}
+          >
+            <span style={{ display: 'inline-block', animation: autoSpin ? 'spin 1s linear infinite' : 'none' }}>⚙️</span>
+            {autoSpin ? 'AUTO ON' : 'AUTO'}
+          </button>
         </div>
 
         {/* Paytable */}
