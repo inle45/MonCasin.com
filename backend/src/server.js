@@ -19,6 +19,8 @@ const hiloRoutes = require('./routes/hilo');
 const { router: lotteryRoutes, checkPendingDraw } = require('./routes/lottery');
 const limboRoutes = require('./routes/limbo');
 const rakebackRoutes = require('./routes/rakeback');
+const plinkoRoutes = require('./routes/plinko');
+const { router: raceRoutes, distributeRaceRewards } = require('./routes/race');
 const { initSocket } = require('./socket/index');
 const { setIo } = require('./socket/ioInstance');
 
@@ -63,7 +65,9 @@ app.use('/api/quests', questRoutes);
 app.use('/api/games/hilo', hiloRoutes);
 app.use('/api/lottery', lotteryRoutes);
 app.use('/api/games/limbo', limboRoutes);
+app.use('/api/games/plinko', plinkoRoutes);
 app.use('/api/rakeback', rakebackRoutes);
+app.use('/api/race', raceRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -89,6 +93,11 @@ server.listen(PORT, () => {
   // Vérifier les tirages en attente 5s après démarrage puis toutes les heures
   setTimeout(checkPendingDraw, 5000);
   setInterval(checkPendingDraw, 60 * 60 * 1000);
+  // Wager Race : distribue les récompenses chaque lundi à 00h05
+  setInterval(() => {
+    const now = new Date();
+    if (now.getDay() === 1 && now.getHours() === 0) distributeRaceRewards();
+  }, 60 * 60 * 1000);
 });
 
 module.exports = { app, server, io };

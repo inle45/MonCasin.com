@@ -59,10 +59,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
-    const { token: newToken, user: newUser } = res.data;
+    const { token: newToken, user: newUser, streakBonus } = res.data;
     localStorage.setItem('casino_token', newToken);
     setToken(newToken);
     setUser(newUser);
+    if (newUser.streak > 1) {
+      const msg = streakBonus > 0
+        ? `🔥 Streak jour ${newUser.streak} ! +${streakBonus.toLocaleString('fr-FR')} F€`
+        : `🔥 Streak jour ${newUser.streak} ! Continue comme ça`;
+      import('react-hot-toast').then(({ default: toast }) => toast.success(msg, { duration: 5000 }));
+    }
   };
 
   const register = async (email: string, pseudo: string, password: string) => {

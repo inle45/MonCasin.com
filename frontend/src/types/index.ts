@@ -10,6 +10,7 @@ export interface User {
   pseudoColor?: string;
   xp?: number;
   level?: number;
+  streak?: number;
 }
 
 export interface ChatMessage {

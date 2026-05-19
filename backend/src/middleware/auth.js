@@ -25,6 +25,8 @@ const authenticate = async (req, res, next) => {
         pseudoColor: true,
         xp: true,
         level: true,
+        streak: true,
+        lastLoginDate: true,
       },
     });
 

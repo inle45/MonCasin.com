@@ -96,21 +96,45 @@ router.post('/login', async (req, res) => {
       expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     });
 
+    // Mise à jour du streak de connexion
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    let newStreak = user.streak || 0;
+    let streakBonus = 0;
+
+    if (user.lastLoginDate !== today) {
+      newStreak = user.lastLoginDate === yesterday ? newStreak + 1 : 1;
+      const STREAK_BONUSES = { 2:200, 3:300, 5:500, 7:1000, 10:2000, 14:3000, 21:5000, 30:10000 };
+      streakBonus = STREAK_BONUSES[newStreak] || 0;
+      const streakUpdates = { streak: newStreak, lastLoginDate: today };
+      if (streakBonus > 0) streakUpdates.balance = { increment: streakBonus };
+      await prisma.user.update({ where: { id: user.id }, data: streakUpdates });
+      if (streakBonus > 0) {
+        await prisma.transaction.create({
+          data: { userId: user.id, type: 'BONUS', amount: streakBonus, description: `Streak jour ${newStreak}` },
+        });
+      }
+    }
+
+    const updatedUser = await prisma.user.findUnique({ where: { id: user.id } });
+
     res.json({
       token,
       user: {
-        id: user.id,
-        email: user.email,
-        pseudo: user.pseudo,
-        avatar: user.avatar,
-        balance: user.balance,
-        role: user.role,
-        grade: user.grade,
-        avatarBorder: user.avatarBorder,
-        pseudoColor: user.pseudoColor,
-        xp: user.xp,
-        level: user.level,
+        id: updatedUser.id,
+        email: updatedUser.email,
+        pseudo: updatedUser.pseudo,
+        avatar: updatedUser.avatar,
+        balance: updatedUser.balance,
+        role: updatedUser.role,
+        grade: updatedUser.grade,
+        avatarBorder: updatedUser.avatarBorder,
+        pseudoColor: updatedUser.pseudoColor,
+        xp: updatedUser.xp,
+        level: updatedUser.level,
+        streak: newStreak,
       },
+      streakBonus,
     });
   } catch (err) {
     console.error('Erreur connexion:', err);

@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { formatBalance } from '@/lib/api';
 import { sfx } from '@/lib/sfx';
-import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star, Ticket, RotateCcw } from 'lucide-react';
+import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star, Ticket, RotateCcw, Flag } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const GRADE_ICONS: Record<string, string> = {
@@ -24,6 +24,7 @@ const GAMES = [
   { href: '/games/mines',    emoji: '💣', label: 'Mines'    },
   { href: '/games/hilo',     emoji: '🃏', label: 'Hi-Lo'    },
   { href: '/games/limbo',    emoji: '🌙', label: 'Limbo'    },
+  { href: '/games/plinko',   emoji: '🪙', label: 'Plinko'   },
 ];
 
 // Menu "Plus" — quêtes, stats, tournoi, boutique, bonus, inventaire
@@ -31,6 +32,7 @@ const MORE_LINKS = [
   { href: '/quests',     label: 'Quêtes',   icon: ClipboardList },
   { href: '/stats',      label: 'Mes stats', icon: BarChart2    },
   { href: '/tournament', label: 'Tournoi',  icon: Trophy        },
+  { href: '/race',       label: 'Wager Race', icon: Flag        },
   { href: '/lottery',    label: 'Loterie',   icon: Ticket      },
   { href: '/rakeback',   label: 'Rakeback',  icon: RotateCcw   },
   { href: '/grades',     label: 'Grades',   icon: Star          },
@@ -152,6 +154,13 @@ export default function Navbar() {
             className={clsx('w-2 h-2 rounded-full', connected ? 'bg-green-400' : 'bg-red-400')}
             title={connected ? 'Connecté' : 'Déconnecté'}
           />
+
+          {/* Streak */}
+          {(user.streak ?? 0) >= 2 && (
+            <span className="hidden sm:flex items-center gap-1 text-xs font-black text-orange-400 bg-orange-500/10 px-2 py-1 rounded-lg border border-orange-500/20" title={`Streak ${user.streak} jours`}>
+              🔥 {user.streak}
+            </span>
+          )}
 
           {/* Solde */}
           <span className="text-casino-gold font-bold text-sm hidden sm:block">

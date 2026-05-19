@@ -24,6 +24,8 @@ model User {
   xp                Int      @default(0)
   level             Int      @default(1)
   rakeback          Float    @default(0)
+  streak            Int      @default(0)
+  lastLoginDate     String?
 
   bets              Bet[]
   chatMessages      ChatMessage[]
