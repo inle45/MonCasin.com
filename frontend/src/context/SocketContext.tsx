@@ -4,39 +4,38 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import toast from 'react-hot-toast';
+import { sfx } from '@/lib/sfx';
 
 interface SocketContextType {
   socket: Socket | null;
   connected: boolean;
+  jackpot: number;
 }
 
-const SocketContext = createContext<SocketContextType>({ socket: null, connected: false });
+const SocketContext = createContext<SocketContextType>({ socket: null, connected: false, jackpot: 0 });
 
 export function SocketProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
+  const [jackpot, setJackpot] = useState(0);
 
   useEffect(() => {
     if (!token) {
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-        setConnected(false);
-      }
+      if (socket) { socket.disconnect(); setSocket(null); setConnected(false); }
       return;
     }
 
     const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
-    const newSocket = io(SOCKET_URL, {
-      auth: { token },
-      transports: ['websocket'],
-    });
+    const s = io(SOCKET_URL, { auth: { token }, transports: ['websocket'] });
 
-    newSocket.on('connect', () => setConnected(true));
-    newSocket.on('disconnect', () => setConnected(false));
+    s.on('connect', () => setConnected(true));
+    s.on('disconnect', () => setConnected(false));
 
-    newSocket.on('achievement:unlocked', (data) => {
+    s.on('slots:jackpot', (data) => setJackpot(data.jackpot ?? 0));
+
+    s.on('achievement:unlocked', (data) => {
+      sfx.achievement();
       toast.custom(() => (
         <div className="bg-casino-card border border-casino-gold/50 rounded-xl px-5 py-4 shadow-xl flex items-center gap-3 max-w-sm">
           <span className="text-4xl">{data.icon}</span>
@@ -52,30 +51,25 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       ), { duration: 6000 });
     });
 
-    newSocket.on('pay:received', (data) => {
+    s.on('pay:received', (data) => {
+      sfx.coin();
       toast.success(`💸 ${data.from} t'a envoyé ${data.amount.toLocaleString('fr-FR')} F€ !`, { duration: 5000 });
     });
 
-    newSocket.on('loan:repaid', (data) => {
-      toast(`🏦 ${data.deducted.toLocaleString('fr-FR')} F€ déduits pour le remboursement du prêt`, {
-        icon: '🏦',
-        duration: 4000,
-      });
+    s.on('loan:repaid', (data) => {
+      toast(`🏦 ${data.deducted.toLocaleString('fr-FR')} F€ déduits pour le remboursement du prêt`, { icon: '🏦', duration: 4000 });
     });
 
-    newSocket.on('pay:confirmed', (data) => {
+    s.on('pay:confirmed', (data) => {
       toast.success(`💸 ${data.amount.toLocaleString('fr-FR')} F€ envoyés à ${data.to} !`);
     });
 
-    setSocket(newSocket);
-
-    return () => {
-      newSocket.disconnect();
-    };
+    setSocket(s);
+    return () => { s.disconnect(); };
   }, [token]);
 
   return (
-    <SocketContext.Provider value={{ socket, connected }}>
+    <SocketContext.Provider value={{ socket, connected, jackpot }}>
       {children}
     </SocketContext.Provider>
   );

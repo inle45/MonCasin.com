@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/layout/Navbar';
 import api, { formatBalance } from '@/lib/api';
+import { sfx } from '@/lib/sfx';
 
 const MISES = [10, 25, 50, 100, 250, 500, 1000];
 // Nombre de combinaisons par total (2 dés)
@@ -59,10 +60,12 @@ export default function DicePage() {
     setRolling(true);
     setResult(null);
 
+    sfx.click();
     // Animation des dés
     let ticks = 0;
     const anim = setInterval(() => {
       setDisplayDice([Math.ceil(Math.random()*6), Math.ceil(Math.random()*6)]);
+      if (ticks % 3 === 0) sfx.diceRoll();
       if (++ticks > 12) clearInterval(anim);
     }, 80);
 
@@ -74,6 +77,7 @@ export default function DicePage() {
         setDisplayDice([data.de1, data.de2]);
         setResult(data);
         updateUser({ balance: data.newBalance });
+        data.gagne ? sfx.win() : sfx.lose();
         setRolling(false);
       }, 1050);
     } catch {

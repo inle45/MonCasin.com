@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { formatBalance } from '@/lib/api';
-import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList } from 'lucide-react';
+import { sfx } from '@/lib/sfx';
+import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList, Volume2, VolumeX, BarChart2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const GRADE_ICONS: Record<string, string> = {
@@ -21,11 +22,13 @@ const GAMES = [
   { href: '/games/slots',   emoji: '🎰', label: 'Slots'    },
   { href: '/games/dice',    emoji: '🎲', label: 'Dice'     },
   { href: '/games/mines',   emoji: '💣', label: 'Mines'    },
+  { href: '/games/hilo',    emoji: '🃏', label: 'Hi-Lo'    },
 ];
 
-// Menu "Plus" — quêtes, tournoi, boutique, bonus, inventaire
+// Menu "Plus" — quêtes, stats, tournoi, boutique, bonus, inventaire
 const MORE_LINKS = [
   { href: '/quests',     label: 'Quêtes',   icon: ClipboardList },
+  { href: '/stats',      label: 'Mes stats', icon: BarChart2    },
   { href: '/tournament', label: 'Tournoi',  icon: Trophy        },
   { href: '/shop',       label: 'Boutique', icon: ShoppingBag   },
   { href: '/bonuses',    label: 'Bonus',    icon: Gift          },
@@ -34,9 +37,10 @@ const MORE_LINKS = [
 
 export default function Navbar() {
   const { user, logout } = useAuth();
-  const { connected } = useSocket();
+  const { connected, jackpot } = useSocket();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [muted, setMuted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Fermer le menu en cliquant ailleurs
@@ -123,6 +127,22 @@ export default function Navbar() {
 
         {/* Droite : solde + point connexion + avatar */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Jackpot progressif */}
+          {jackpot > 0 && (
+            <span className="hidden sm:flex items-center gap-1 text-xs font-black text-casino-gold bg-casino-gold/10 px-2 py-1 rounded-lg border border-casino-gold/20" title="Jackpot progressif Slots">
+              🎰 {jackpot.toLocaleString('fr-FR')}
+            </span>
+          )}
+
+          {/* Bouton son */}
+          <button
+            onClick={() => setMuted(sfx.toggleMute())}
+            title={muted ? 'Activer le son' : 'Couper le son'}
+            className="text-gray-500 hover:text-casino-gold transition-colors p-1"
+          >
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+
           {/* Point connexion */}
           <div
             className={clsx('w-2 h-2 rounded-full', connected ? 'bg-green-400' : 'bg-red-400')}

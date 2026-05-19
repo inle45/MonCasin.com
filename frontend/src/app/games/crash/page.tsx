@@ -10,6 +10,7 @@ import { formatBalance, formatMultiplier } from '@/lib/api';
 import { CrashBet } from '@/types';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
+import { sfx } from '@/lib/sfx';
 
 interface CrashPoint { x: number; y: number; }
 
@@ -198,6 +199,7 @@ export default function CrashPage() {
       setGameState('running');
       setCrashed(false);
       pointsRef.current = [];
+      sfx.click();
     });
 
     socket.on('crash:tick', (data) => {
@@ -222,6 +224,7 @@ export default function CrashPage() {
       setGameState('crashed');
       setCrashPoint(data.crashPoint);
       triggerCrashEffect();
+      sfx.crashBoom();
 
       if (hasBet && !myCashedOut) {
         toast.error(`💥 CRASH à ${formatMultiplier(data.crashPoint)} ! Tu as perdu ${formatBalance(myBetAmount)}`);
@@ -247,6 +250,7 @@ export default function CrashPage() {
     socket.on('crash:cashout_confirmed', (data) => {
       updateUser({ balance: data.newBalance });
       setMyCashedOut(true);
+      sfx.cashout();
       toast.success(`🎉 Retiré à ${formatMultiplier(data.multiplier)} ! Gain : ${formatBalance(data.winAmount)}`);
     });
 
@@ -277,6 +281,7 @@ export default function CrashPage() {
     const amount = parseFloat(betAmount);
     if (isNaN(amount) || amount <= 0) { toast.error('Montant invalide'); return; }
     if (amount > (user?.balance || 0)) { toast.error('Solde insuffisant'); return; }
+    sfx.click();
     socket.emit('crash:bet', { amount });
   };
 
