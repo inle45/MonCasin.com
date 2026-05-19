@@ -3,6 +3,7 @@ const prisma = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { demarrerMines, revelerCase, cashout, getSession } = require('../games/mines');
 const { getIo } = require('../socket/ioInstance');
+const { grantXp } = require('../games/xp');
 
 const router = express.Router();
 
@@ -58,6 +59,7 @@ router.post('/reveal', authenticate, async (req, res) => {
           details: { game: 'MINES', mine: true, index },
         },
       });
+      grantXp(req.user.id, mise).catch(() => {});
       const updatedUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } });
       return res.json({ ...result, newBalance: updatedUser.balance });
     }
@@ -117,6 +119,7 @@ router.post('/cashout', authenticate, async (req, res) => {
       }),
     ]);
 
+    grantXp(req.user.id, mise).catch(() => {});
     const updatedUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true, pseudo: true } });
 
     if (result.gain >= 300) {

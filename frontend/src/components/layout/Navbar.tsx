@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { formatBalance } from '@/lib/api';
 import { sfx } from '@/lib/sfx';
-import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star } from 'lucide-react';
+import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star, Ticket } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const GRADE_ICONS: Record<string, string> = {
@@ -30,6 +30,7 @@ const MORE_LINKS = [
   { href: '/quests',     label: 'Quêtes',   icon: ClipboardList },
   { href: '/stats',      label: 'Mes stats', icon: BarChart2    },
   { href: '/tournament', label: 'Tournoi',  icon: Trophy        },
+  { href: '/lottery',    label: 'Loterie',  icon: Ticket        },
   { href: '/grades',     label: 'Grades',   icon: Star          },
   { href: '/shop',       label: 'Boutique', icon: ShoppingBag   },
   { href: '/bonuses',    label: 'Bonus',    icon: Gift          },
@@ -170,6 +171,11 @@ export default function Navbar() {
             </div>
             {user.grade !== 'NONE' && (
               <span className="absolute -top-1 -right-1 text-[10px] leading-none">{GRADE_ICONS[user.grade]}</span>
+            )}
+            {(user.level ?? 1) > 1 && (
+              <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none bg-purple-600 text-white rounded-full px-1">
+                {user.level}
+              </span>
             )}
           </Link>
 

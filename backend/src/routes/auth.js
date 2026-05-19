@@ -64,6 +64,8 @@ router.post('/register', async (req, res) => {
         balance: user.balance,
         role: user.role,
         grade: user.grade,
+        xp: 0,
+        level: 1,
       },
     });
   } catch (err) {
@@ -106,6 +108,8 @@ router.post('/login', async (req, res) => {
         grade: user.grade,
         avatarBorder: user.avatarBorder,
         pseudoColor: user.pseudoColor,
+        xp: user.xp,
+        level: user.level,
       },
     });
   } catch (err) {

@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../config/database');
 const CrashGame = require('../games/crash');
 const { RouletteGame } = require('../games/roulette');
+const { grantXp } = require('../games/xp');
 
 function initSocket(io) {
   io.use(async (socket, next) => {
@@ -190,6 +191,9 @@ function initSocket(io) {
         newBalance,
       });
 
+      // XP pour la mise
+      grantXp(user.id, betAmount).catch(() => {});
+
       // Live feed — cashout notable (≥2x ou ≥500 F€)
       if (result.multiplier >= 2 || result.winAmount >= 500) {
         const emoji = result.multiplier >= 10 ? '🚀' : result.multiplier >= 5 ? '🔥' : '⚡';
@@ -249,6 +253,7 @@ function initSocket(io) {
       })).balance;
 
       socket.emit('roulette:bet_confirmed', { totalBet, newBalance });
+      grantXp(user.id, totalBet).catch(() => {});
 
       // Broadcast aux autres joueurs pour afficher les jetons sur le tapis
       io.to('roulette').emit('roulette:bet_placed', {
@@ -294,6 +299,7 @@ function initSocket(io) {
               details: { crashedAt: data.crashPoint },
             },
           });
+          grantXp(result.userId, result.amount).catch(() => {});
         } catch {}
       }
     }

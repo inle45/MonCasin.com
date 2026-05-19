@@ -5,6 +5,7 @@ import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import toast from 'react-hot-toast';
 import { sfx } from '@/lib/sfx';
+import { formatBalance } from '@/lib/api';
 
 export interface LiveEvent {
   id: string;
@@ -26,7 +27,7 @@ interface SocketContextType {
 const SocketContext = createContext<SocketContextType>({ socket: null, connected: false, jackpot: 0, liveEvents: [] });
 
 export function SocketProvider({ children }: { children: ReactNode }) {
-  const { token } = useAuth();
+  const { token, updateUser } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [jackpot, setJackpot] = useState(0);
@@ -74,6 +75,23 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     s.on('loan:repaid', (data) => {
       toast(`🏦 ${data.deducted.toLocaleString('fr-FR')} F€ déduits pour le remboursement du prêt`, { icon: '🏦', duration: 4000 });
+    });
+
+    s.on('xp:levelup', (data: { level: number; xp: number; reward: number }) => {
+      sfx.achievement();
+      updateUser({ level: data.level, xp: data.xp });
+      toast.custom(() => (
+        <div className="bg-casino-card border border-purple-500/50 rounded-xl px-5 py-4 shadow-xl flex items-center gap-3 max-w-sm">
+          <span className="text-4xl">⭐</span>
+          <div>
+            <div className="text-purple-400 font-bold text-sm">Level Up !</div>
+            <div className="text-white font-bold">Niveau {data.level} atteint</div>
+            {data.reward > 0 && (
+              <div className="text-green-400 text-xs mt-1 font-bold">+{formatBalance(data.reward)} F€ de récompense</div>
+            )}
+          </div>
+        </div>
+      ), { duration: 6000 });
     });
 
     s.on('pay:confirmed', (data) => {

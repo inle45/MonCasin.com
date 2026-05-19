@@ -3,6 +3,7 @@ const prisma = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { startHilo, guessHilo, cashoutHilo, getHiloSession } = require('../games/hilo');
 const { getIo } = require('../socket/ioInstance');
+const { grantXp } = require('../games/xp');
 
 const router = express.Router();
 
@@ -45,6 +46,7 @@ router.post('/guess', authenticate, async (req, res) => {
           details: { game: 'HILO', direction },
         },
       });
+      grantXp(req.user.id, mise).catch(() => {});
       const updated = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } });
       return res.json({ ...result, newBalance: updated.balance });
     }
@@ -92,6 +94,7 @@ router.post('/cashout', authenticate, async (req, res) => {
       }),
     ]);
 
+    grantXp(req.user.id, mise).catch(() => {});
     const updated = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true, pseudo: true } });
 
     if (result.gain >= 200) {

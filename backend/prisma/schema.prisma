@@ -21,6 +21,9 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  xp                Int      @default(0)
+  level             Int      @default(1)
+
   bets              Bet[]
   chatMessages      ChatMessage[]
   transactions      Transaction[]
@@ -32,6 +35,8 @@ model User {
   loansTaken        Loan[]           @relation("LoanBorrower")
   inventoryItems    InventoryItem[]
   dailyQuests       UserDailyQuest[]
+  lotteryTickets    LotteryTicket[]
+  lotteryWins       LotteryDraw[]
 
   @@map("users")
 }
@@ -225,6 +230,29 @@ model UserDailyQuest {
 
   @@unique([userId, questKey, day])
   @@map("user_daily_quests")
+}
+
+model LotteryTicket {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  day       String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, day])
+  @@map("lottery_tickets")
+}
+
+model LotteryDraw {
+  id        String   @id @default(uuid())
+  day       String   @unique
+  winnerId  String?
+  winner    User?    @relation(fields: [winnerId], references: [id])
+  jackpot   Float
+  noWinner  Boolean  @default(false)
+  drawnAt   DateTime @default(now())
+
+  @@map("lottery_draws")
 }
 
 enum ItemType {

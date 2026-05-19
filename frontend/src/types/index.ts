@@ -8,6 +8,8 @@ export interface User {
   grade: 'NONE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND';
   avatarBorder?: string;
   pseudoColor?: string;
+  xp?: number;
+  level?: number;
 }
 
 export interface ChatMessage {

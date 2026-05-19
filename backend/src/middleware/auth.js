@@ -23,6 +23,8 @@ const authenticate = async (req, res, next) => {
         grade: true,
         avatarBorder: true,
         pseudoColor: true,
+        xp: true,
+        level: true,
       },
     });
 

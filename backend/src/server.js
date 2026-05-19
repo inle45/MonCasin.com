@@ -16,6 +16,7 @@ const minesRoutes = require('./routes/mines');
 const tournamentRoutes = require('./routes/tournament');
 const questRoutes = require('./routes/quests');
 const hiloRoutes = require('./routes/hilo');
+const { router: lotteryRoutes, checkPendingDraw } = require('./routes/lottery');
 const { initSocket } = require('./socket/index');
 const { setIo } = require('./socket/ioInstance');
 
@@ -58,6 +59,7 @@ app.use('/api/games/mines', minesRoutes);
 app.use('/api/tournament', tournamentRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/games/hilo', hiloRoutes);
+app.use('/api/lottery', lotteryRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -70,6 +72,10 @@ setIo(io);
 
 // Initialisation Socket.io
 initSocket(io);
+
+// Vérifier les tirages en attente au démarrage puis toutes les heures
+checkPendingDraw();
+setInterval(checkPendingDraw, 60 * 60 * 1000);
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
