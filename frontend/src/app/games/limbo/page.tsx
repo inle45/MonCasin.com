@@ -9,6 +9,7 @@ import Navbar from '@/components/layout/Navbar';
 import api, { formatBalance } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { sfx } from '@/lib/sfx';
+import BigWinOverlay from '@/components/games/BigWinOverlay';
 
 const QUICK_TARGETS = [1.5, 2, 3, 5, 10, 25, 100, 1000];
 
@@ -30,6 +31,8 @@ export default function LimboPage() {
   const betVal = parseFloat(bet) || 0;
   const targetVal = parseFloat(target) || 2;
   const payout = betVal * targetVal;
+
+  const [bigWin, setBigWin] = useState<{ montant: number; multiplicateur: number } | null>(null);
 
   // Auto-bet
   const [autoMode, setAutoMode] = useState(false);
@@ -55,7 +58,10 @@ export default function LimboPage() {
       setResult(res);
       setWon(w);
       updateUser({ balance: newBalance });
-      w ? sfx.win() : sfx.lose();
+      if (w) {
+        sfx.win();
+        if (pay >= bv * 5) { sfx.bigWin(); setBigWin({ montant: pay, multiplicateur: parseFloat(tv.toFixed(2)) }); }
+      } else { sfx.lose(); }
       setHistory(prev => [{ result: res, target: tv, won: w, payout: pay }, ...prev].slice(0, 20));
       return { result: res, won: w, payout: pay, newBalance };
     } catch {
@@ -106,6 +112,7 @@ export default function LimboPage() {
 
   return (
     <div className="min-h-screen bg-casino-dark text-white">
+      <BigWinOverlay visible={!!bigWin} montant={bigWin?.montant ?? 0} multiplicateur={bigWin?.multiplicateur ?? 0} onClose={() => setBigWin(null)} />
       <Navbar />
       <div className="max-w-lg mx-auto px-4 pt-20 pb-10 flex flex-col gap-5">
 

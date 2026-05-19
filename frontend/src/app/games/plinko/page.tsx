@@ -7,6 +7,7 @@ import Navbar from '@/components/layout/Navbar';
 import api, { formatBalance } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { sfx } from '@/lib/sfx';
+import BigWinOverlay from '@/components/games/BigWinOverlay';
 
 type Risk = 'low' | 'medium' | 'high';
 type Rows = 8 | 12 | 16;
@@ -110,6 +111,8 @@ export default function PlinkoPage() {
   const betVal = parseFloat(bet) || 0;
   const mults = MULTIPLIERS[risk][rows];
 
+  const [bigWin, setBigWin] = useState<{ montant: number; multiplicateur: number } | null>(null);
+
   // Auto-bet
   const [autoMode, setAutoMode] = useState(false);
   const [autoCount, setAutoCount] = useState(10);
@@ -133,10 +136,12 @@ export default function PlinkoPage() {
           setAnimStep(step);
           if (step <= rowCount) sfx.tick(0.3);
           if (step > rowCount + 1) {
-            clearInterval(animRef.current!);
-            data.multiplier >= 1 ? sfx.win() : sfx.lose();
-            if (data.payout >= 1000) sfx.bigWin();
-            setHistory(prev => [{ multiplier: data.multiplier, payout: data.payout, bet: bv }, ...prev].slice(0, 15));
+          clearInterval(animRef.current!);
+          if (data.multiplier >= 1) {
+            sfx.win();
+            if (data.multiplier >= 5) { sfx.bigWin(); setBigWin({ montant: data.payout, multiplicateur: data.multiplier }); }
+          } else { sfx.lose(); }
+          setHistory(prev => [{ multiplier: data.multiplier, payout: data.payout, bet: bv }, ...prev].slice(0, 15));
             resolve(data);
           }
         }, 100);
@@ -191,6 +196,7 @@ export default function PlinkoPage() {
 
   return (
     <div className="min-h-screen bg-casino-dark text-white">
+      <BigWinOverlay visible={!!bigWin} montant={bigWin?.montant ?? 0} multiplicateur={bigWin?.multiplicateur ?? 0} onClose={() => setBigWin(null)} />
       <Navbar />
       <div className="max-w-lg mx-auto px-4 pt-20 pb-10 flex flex-col gap-4">
 

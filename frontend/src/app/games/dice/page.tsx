@@ -7,6 +7,7 @@ import Navbar from '@/components/layout/Navbar';
 import api, { formatBalance } from '@/lib/api';
 import { sfx } from '@/lib/sfx';
 import toast from 'react-hot-toast';
+import BigWinOverlay from '@/components/games/BigWinOverlay';
 
 const MISES = [10, 25, 50, 100, 250, 500, 1000];
 // Nombre de combinaisons par total (2 dés)
@@ -50,6 +51,8 @@ export default function DicePage() {
   const [result, setResult] = useState<{ de1:number; de2:number; total:number; gagne:boolean; gain:number; multiplicateur:number } | null>(null);
   const [displayDice, setDisplayDice] = useState<[number,number]>([1,1]);
 
+  const [bigWin, setBigWin] = useState<{ montant: number; multiplicateur: number } | null>(null);
+
   // Auto-bet
   const [autoMode, setAutoMode] = useState(false);
   const [autoCount, setAutoCount] = useState(10);
@@ -77,7 +80,10 @@ export default function DicePage() {
             setDisplayDice([data.de1, data.de2]);
             setResult(data);
             updateUser({ balance: data.newBalance });
-            data.gagne ? sfx.win() : sfx.lose();
+            if (data.gagne) {
+              sfx.win();
+              if (data.gain >= currentMise * 5) { sfx.bigWin(); setBigWin({ montant: data.gain, multiplicateur: data.multiplicateur }); }
+            } else { sfx.lose(); }
             resolve(data);
           }, 700);
         })
@@ -132,6 +138,7 @@ export default function DicePage() {
 
   return (
     <div className="min-h-screen bg-casino-dark text-white">
+      <BigWinOverlay visible={!!bigWin} montant={bigWin?.montant ?? 0} multiplicateur={bigWin?.multiplicateur ?? 0} onClose={() => setBigWin(null)} />
       <Navbar />
       <div className="max-w-md mx-auto px-4 pt-20 pb-10 flex flex-col gap-5">
 

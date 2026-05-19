@@ -11,6 +11,8 @@ type GameStat = {
   _sum: { amount: number | null; result: number | null };
 };
 
+type DayStat = { date: string; profit: number; games: number };
+
 type StatsData = {
   stats: GameStat[];
   advanced: {
@@ -20,6 +22,7 @@ type StatsData = {
     totalGames: number;
     winRate: string;
   };
+  dailyStats: DayStat[];
 };
 
 const GAME_ICONS: Record<string, string> = {
@@ -28,6 +31,67 @@ const GAME_ICONS: Record<string, string> = {
 const GAME_LABELS: Record<string, string> = {
   CRASH: 'Crash', ROULETTE: 'Roulette', SLOTS: 'Slots', DICE: 'Dés', MINES: 'Mines', HILO: 'Hi-Lo',
 };
+
+function ProfitChart({ days }: { days: DayStat[] }) {
+  const hasData = days.some(d => d.games > 0);
+  if (!hasData) return null;
+
+  const profits = days.map(d => d.profit);
+  const min = Math.min(...profits);
+  const max = Math.max(...profits);
+  const range = max - min || 1;
+  const W = 600, H = 100;
+  const px = (i: number) => (i / (days.length - 1)) * W;
+  const py = (v: number) => H - ((v - min) / range) * (H - 12) - 6;
+
+  const pathD = days.map((d, i) => `${i === 0 ? 'M' : 'L'} ${px(i).toFixed(1)} ${py(d.profit).toFixed(1)}`).join(' ');
+  const totalProfit = profits.reduce((a, b) => a + b, 0);
+  const up = totalProfit >= 0;
+
+  const color = up ? '#22c55e' : '#ef4444';
+
+  // Labels de dates (1 sur 5)
+  const labels = days.filter((_, i) => i % 5 === 0 || i === days.length - 1);
+
+  return (
+    <div className="rounded-2xl p-5" style={{ background: 'rgba(30,27,75,0.6)', border: '1px solid rgba(245,158,11,0.15)' }}>
+      <div className="flex justify-between items-center mb-4">
+        <span className="text-sm font-bold text-gray-300">📈 Profit des 30 derniers jours</span>
+        <span className={`text-sm font-black ${up ? 'text-green-400' : 'text-red-400'}`}>
+          {up ? '+' : ''}{totalProfit.toLocaleString('fr-FR')} F€
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H + 20}`} className="w-full" style={{ height: 120 }}>
+        <defs>
+          <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+          <clipPath id="profitClip">
+            <rect x="0" y="0" width={W} height={H} />
+          </clipPath>
+        </defs>
+        {/* Zone neutre (y=0) */}
+        <line x1="0" y1={py(0).toFixed(1)} x2={W} y2={py(0).toFixed(1)} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="4 4" />
+        {/* Aire */}
+        <path d={`${pathD} L ${px(days.length - 1)} ${H} L 0 ${H} Z`} fill="url(#profitGrad)" clipPath="url(#profitClip)" />
+        {/* Ligne */}
+        <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Point final */}
+        <circle cx={px(days.length - 1)} cy={py(days[days.length - 1].profit)} r="4" fill={color} />
+        {/* Labels date */}
+        {labels.map(d => {
+          const i = days.findIndex(x => x.date === d.date);
+          return (
+            <text key={d.date} x={px(i)} y={H + 16} textAnchor="middle" fill="#6b7280" fontSize="9">
+              {d.date.slice(5)}
+            </text>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
 
 export default function StatsPage() {
   const [data, setData] = useState<StatsData | null>(null);
@@ -78,6 +142,9 @@ export default function StatsPage() {
                 </motion.div>
               ))}
             </div>
+
+            {/* Graphique 30 jours */}
+            {data!.dailyStats && <ProfitChart days={data!.dailyStats} />}
 
             {/* Meilleur gain + pire série */}
             <div className="flex gap-3">

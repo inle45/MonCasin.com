@@ -1,16 +1,37 @@
 /**
- * Moteur du jeu Crash
- * Logique entièrement serveur pour éviter la triche.
- * Le multiplicateur de crash est généré via une fonction de hasard provably fair.
+ * Moteur du jeu Crash — Provably Fair
+ * Chaque round utilise un serverSeed aléatoire + un nonce incrémental.
+ * Le hash SHA-256 du serverSeed est publié avant le round (commitHash).
+ * Après le crash, le serverSeed est révélé pour que les joueurs vérifient.
+ * Formule : HMAC-SHA256(serverSeed, nonce) → entier 32 bits → crashPoint
  */
 
-const HOUSE_EDGE = 0.04; // 4% d'avantage maison
+const crypto = require('crypto');
+const HOUSE_EDGE = 0.04;
 
-function generateCrashPoint() {
-  const r = Math.random();
-  if (r < HOUSE_EDGE) return 1.0;
-  const crash = Math.floor((1 / (1 - r)) * 100) / 100;
-  return Math.max(1.0, Math.min(crash, 1000));
+function generateServerSeed() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function hashSeed(seed) {
+  return crypto.createHash('sha256').update(seed).digest('hex');
+}
+
+function crashPointFromHash(serverSeed, nonce) {
+  const hmac = crypto.createHmac('sha256', serverSeed);
+  hmac.update(String(nonce));
+  const hash = hmac.digest('hex');
+
+  // Convertir les 8 premiers caractères en entier non signé 32 bits
+  const h = parseInt(hash.slice(0, 8), 16);
+  const e = 2 ** 32;
+
+  // Si la maison gagne (4%), forcer le crash à 1.00
+  if (h % 25 === 0) return 1.00;
+
+  // Formule provably fair standard
+  const result = Math.floor((100 * e - h) / (e - h)) / 100;
+  return Math.max(1.00, Math.min(result, 1000));
 }
 
 class CrashGame {
@@ -19,12 +40,17 @@ class CrashGame {
     this.state = 'waiting';
     this.multiplier = 1.0;
     this.crashPoint = null;
-    this.bets = new Map(); // userId -> { amount, cashedOut, cashOutAt }
+    this.bets = new Map();
     this.interval = null;
     this.startTime = null;
     this.waitTime = 8000;
     this.tickRate = 100;
     this.history = [];
+    // Provably Fair
+    this.serverSeed = generateServerSeed();
+    this.nonce = 0;
+    this.commitHash = hashSeed(this.serverSeed);
+    this.lastServerSeed = null;
   }
 
   start() {
@@ -38,16 +64,27 @@ class CrashGame {
     this.bets = new Map();
     this.startTime = null;
 
+    // Préparer le prochain round (nouveau seed si nonce > 1000 pour rotation)
+    if (this.nonce > 1000) {
+      this.lastServerSeed = this.serverSeed;
+      this.serverSeed = generateServerSeed();
+      this.nonce = 0;
+    }
+    this.commitHash = hashSeed(this.serverSeed);
+
     this.io.to('crash').emit('crash:waiting', {
       waitTime: this.waitTime / 1000,
       history: this.history.slice(-10),
+      commitHash: this.commitHash,
+      lastServerSeed: this.lastServerSeed,
     });
 
     setTimeout(() => this.startRound(), this.waitTime);
   }
 
   startRound() {
-    this.crashPoint = generateCrashPoint();
+    this.nonce++;
+    this.crashPoint = crashPointFromHash(this.serverSeed, this.nonce);
     this.state = 'running';
     this.startTime = Date.now();
     this.multiplier = 1.0;
@@ -128,6 +165,9 @@ class CrashGame {
     this.io.to('crash').emit('crash:crashed', {
       crashPoint: finalCrash,
       results,
+      serverSeed: this.serverSeed,
+      nonce: this.nonce,
+      commitHash: this.commitHash,
     });
 
     setTimeout(() => this.scheduleNextRound(), 3000);
@@ -154,3 +194,5 @@ class CrashGame {
 }
 
 module.exports = CrashGame;
+module.exports.hashSeed = hashSeed;
+module.exports.crashPointFromHash = crashPointFromHash;

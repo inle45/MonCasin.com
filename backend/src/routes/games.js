@@ -208,6 +208,32 @@ router.get('/stats', authenticate, async (req, res) => {
     const totalWins = allBets.filter(b => b.won).length;
     const totalGames = allBets.length;
 
+    // Agréger le profit par jour sur les 30 derniers jours
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+    const recentBets = allBets.filter(b => new Date(b.createdAt) >= thirtyDaysAgo);
+    const dailyMap = new Map();
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(thirtyDaysAgo);
+      d.setDate(d.getDate() + i);
+      dailyMap.set(d.toISOString().slice(0, 10), { profit: 0, games: 0 });
+    }
+    for (const b of recentBets) {
+      const day = new Date(b.createdAt).toISOString().slice(0, 10);
+      if (dailyMap.has(day)) {
+        const entry = dailyMap.get(day);
+        entry.profit += (b.result ?? 0) - b.amount;
+        entry.games += 1;
+      }
+    }
+    const dailyStats = [...dailyMap.entries()].map(([date, v]) => ({
+      date,
+      profit: Math.round(v.profit),
+      games: v.games,
+    }));
+
     res.json({
       stats: grouped,
       advanced: {
@@ -217,6 +243,7 @@ router.get('/stats', authenticate, async (req, res) => {
         totalGames,
         winRate: totalGames > 0 ? (totalWins / totalGames * 100).toFixed(1) : '0',
       },
+      dailyStats,
     });
   } catch (err) {
     res.status(500).json({ error: 'Erreur statistiques' });
