@@ -5,7 +5,7 @@ RUN apk add --no-cache openssl
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 COPY prisma ./prisma
 RUN npx prisma generate
@@ -17,4 +17,4 @@ RUN mkdir -p src/uploads
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma db push && node prisma/seed.js && node src/server.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node prisma/seed.js && node src/server.js"]
