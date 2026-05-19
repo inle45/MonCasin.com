@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -8,8 +8,8 @@ import { useSocket } from '@/context/SocketContext';
 import Navbar from '@/components/layout/Navbar';
 import ChatPanel from '@/components/chat/ChatPanel';
 import Leaderboard from '@/components/leaderboard/Leaderboard';
-import { formatBalance } from '@/lib/api';
-import { Zap, Trophy, ShoppingBag } from 'lucide-react';
+import api, { formatBalance } from '@/lib/api';
+import { Zap, ShoppingBag } from 'lucide-react';
 
 const GAMES = [
   {
@@ -33,6 +33,16 @@ const GAMES = [
     badgeColor: 'text-red-400 bg-red-400/10',
   },
   {
+    href: '/games/dice',
+    title: 'Dice',
+    icon: '🎲',
+    description: 'Lance 2 dés et parie sur le résultat. Multiplicateurs jusqu\'à ×17 !',
+    color: 'from-blue-500/20 to-blue-900/20',
+    border: 'border-blue-500/30',
+    badge: 'SOLO',
+    badgeColor: 'text-blue-400 bg-blue-400/10',
+  },
+  {
     href: '/games/slots',
     title: 'Machine à Sous',
     icon: '🎰',
@@ -43,6 +53,68 @@ const GAMES = [
     badgeColor: 'text-purple-400 bg-purple-400/10',
   },
 ];
+
+function FortuneGraph() {
+  const [points, setPoints] = useState<number[]>([]);
+
+  useEffect(() => {
+    api.get('/games/stats').then(res => {
+      const bets: { amount: number; result: number; won: boolean }[] = res.data.advanced ? [] : [];
+      // Reconstituer la courbe depuis les paris
+      api.get('/games/stats').then(r => {
+        const allBets: { amount: number; result: number | null }[] = [];
+        // On n'a pas l'historique complet ici, on simule avec les transactions
+      });
+    }).catch(() => {});
+
+    // Chercher dans les transactions
+    api.get('/users/me/transactions').then(res => {
+      const txs: { amount: number }[] = res.data.transactions || [];
+      let balance = 50000;
+      const curve = [balance];
+      txs.slice(-29).forEach(tx => {
+        balance += tx.amount;
+        curve.push(Math.max(0, balance));
+      });
+      setPoints(curve);
+    }).catch(() => setPoints([50000]));
+  }, []);
+
+  if (points.length < 2) return null;
+
+  const W = 300, H = 80;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
+  const px = (i: number) => (i / (points.length - 1)) * W;
+  const py = (v: number) => H - ((v - min) / range) * (H - 8) - 4;
+  const pathD = points.map((v, i) => `${i === 0 ? 'M' : 'L'} ${px(i).toFixed(1)} ${py(v).toFixed(1)}`).join(' ');
+  const last = points[points.length - 1];
+  const first = points[0];
+  const up = last >= first;
+
+  return (
+    <div className="casino-card p-4 mt-4">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-sm font-bold text-gray-300">📈 Courbe de fortune</span>
+        <span className={`text-sm font-black ${up ? 'text-green-400' : 'text-red-400'}`}>
+          {up ? '+' : ''}{formatBalance(last - first)}
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 80 }}>
+        <defs>
+          <linearGradient id="fgrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={up ? '#10b981' : '#ef4444'} stopOpacity="0.3"/>
+            <stop offset="100%" stopColor={up ? '#10b981' : '#ef4444'} stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d={`${pathD} L ${px(points.length-1)} ${H} L 0 ${H} Z`} fill="url(#fgrad)"/>
+        <path d={pathD} fill="none" stroke={up ? '#10b981' : '#ef4444'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx={px(points.length-1)} cy={py(last)} r="4" fill={up ? '#10b981' : '#ef4444'}/>
+      </svg>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -86,6 +158,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+          <FortuneGraph />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -33,7 +33,24 @@ function initSocket(io) {
   crashGame.start();
   rouletteGame.start();
 
+  // Charger les 100 derniers messages depuis la DB au démarrage
   const chatHistory = [];
+  prisma.chatMessage.findMany({
+    orderBy: { createdAt: 'asc' },
+    take: 100,
+    include: { user: { select: { pseudo: true, avatar: true, grade: true, pseudoColor: true } } },
+  }).then(msgs => {
+    msgs.forEach(m => chatHistory.push({
+      id: m.id,
+      userId: m.userId,
+      pseudo: m.user.pseudo,
+      avatar: m.user.avatar,
+      grade: m.user.grade,
+      pseudoColor: m.user.pseudoColor,
+      content: m.content,
+      createdAt: m.createdAt,
+    }));
+  }).catch(() => {});
 
   // Track consecutive 1.00x crashes per user
   const consecutiveCrashOnes = new Map();
@@ -225,6 +242,17 @@ function initSocket(io) {
         userId: user.id,
         pseudo: user.pseudo,
         bets,
+      });
+    });
+
+    // ─── RÉACTIONS CRASH ────────────────────────────────────
+    socket.on('crash:reaction', (data) => {
+      const ALLOWED = ['😱','🔥','💀','🚀','😂','💸','🎉','😤'];
+      if (!ALLOWED.includes(data.emoji)) return;
+      io.to('crash').emit('crash:reaction', {
+        pseudo: user.pseudo,
+        emoji: data.emoji,
+        id: `${user.id}-${Date.now()}`,
       });
     });
 

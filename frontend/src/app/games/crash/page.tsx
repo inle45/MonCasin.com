@@ -30,6 +30,7 @@ export default function CrashPage() {
   const [bets, setBets] = useState<CrashBet[]>([]);
   const [shaking, setShaking] = useState(false);
   const [crashed, setCrashed] = useState(false);
+  const [reactions, setReactions] = useState<{ id: string; pseudo: string; emoji: string }[]>([]);
 
   const [betAmount, setBetAmount] = useState('100');
   const [hasBet, setHasBet] = useState(false);
@@ -251,6 +252,11 @@ export default function CrashPage() {
 
     socket.on('error', (data) => toast.error(data.message));
 
+    socket.on('crash:reaction', (data: { id: string; pseudo: string; emoji: string }) => {
+      setReactions(prev => [...prev.slice(-8), data]);
+      setTimeout(() => setReactions(prev => prev.filter(r => r.id !== data.id)), 2500);
+    });
+
     return () => {
       socket.off('init');
       socket.off('crash:waiting');
@@ -262,6 +268,7 @@ export default function CrashPage() {
       socket.off('crash:bet_confirmed');
       socket.off('crash:cashout_confirmed');
       socket.off('error');
+      socket.off('crash:reaction');
     };
   }, [socket, hasBet, myCashedOut, myBetAmount, drawCanvas, updateUser, triggerCrashEffect]);
 
@@ -352,8 +359,36 @@ export default function CrashPage() {
                 </div>
               </div>
 
+              {/* Réactions live */}
+              <div className="flex items-center gap-2 mt-3">
+                <div className="flex gap-1.5 flex-1 flex-wrap min-h-7">
+                  {reactions.map(r => (
+                    <span
+                      key={r.id}
+                      className="text-base animate-bounce-in"
+                      title={r.pseudo}
+                      style={{ display: 'inline-block', animation: 'bounceIn 0.3s ease' }}
+                    >
+                      {r.emoji}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-1 flex-shrink-0">
+                  {['😱','🔥','💀','🚀','😂','💸'].map(emoji => (
+                    <button
+                      key={emoji}
+                      onClick={() => socket?.emit('crash:reaction', { emoji })}
+                      className="text-lg hover:scale-125 transition-transform active:scale-95"
+                      title={`Réagir ${emoji}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Historique */}
-              <div className="flex gap-1.5 mt-3 flex-wrap">
+              <div className="flex gap-1.5 mt-2 flex-wrap">
                 {history.map((h, i) => (
                   <span key={i} className={clsx(
                     'text-xs px-2 py-1 rounded font-bold transition-all',

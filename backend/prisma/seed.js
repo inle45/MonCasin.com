@@ -5,10 +5,6 @@ const prisma = new PrismaClient();
 
 const users = [
   { pseudo: 'Inlé', email: 'inle@moncasin.com', balance: 50000 },
-  { pseudo: 'Louis', email: 'louis@moncasin.com', balance: 50000 },
-  { pseudo: 'Amaury', email: 'amaury@moncasin.com', balance: 50000 },
-  { pseudo: 'Noah', email: 'noah@moncasin.com', balance: 50000 },
-  { pseudo: 'Matthieu', email: 'matthieu@moncasin.com', balance: 50000 },
 ];
 
 const shopItems = [
@@ -142,7 +138,7 @@ async function main() {
   for (const userData of users) {
     const user = await prisma.user.upsert({
       where: { email: userData.email },
-      update: { balance: userData.balance },
+      update: {}, // ne jamais écraser le solde existant
       create: {
         ...userData,
         password: hashedPassword,
