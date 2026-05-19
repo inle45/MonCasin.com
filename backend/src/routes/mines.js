@@ -4,6 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const { demarrerMines, revelerCase, cashout, getSession } = require('../games/mines');
 const { getIo } = require('../socket/ioInstance');
 const { grantXp } = require('../games/xp');
+const { tryCompleteChallenge } = require('./challenge');
 
 const router = express.Router();
 
@@ -133,6 +134,8 @@ router.post('/cashout', authenticate, async (req, res) => {
         positive: true,
       });
     }
+
+    tryCompleteChallenge(req.user.id, 'mines_cashout', { revealed: result.revealed?.length ?? 0 }).catch(() => {});
 
     res.json({ ...result, newBalance: updatedUser.balance });
   } catch (err) {

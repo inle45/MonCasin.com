@@ -3,6 +3,7 @@ const prisma = require('../config/database');
 const CrashGame = require('../games/crash');
 const { RouletteGame } = require('../games/roulette');
 const { grantXp } = require('../games/xp');
+const { tryCompleteChallenge } = require('../routes/challenge');
 
 function initSocket(io) {
   io.use(async (socket, next) => {
@@ -213,6 +214,8 @@ function initSocket(io) {
           positive: true,
         });
       }
+
+      tryCompleteChallenge(user.id, 'crash_cashout', { multiplier: result.multiplier }).catch(() => {});
 
       // Vérifier succès : Chasseur de Multiplicateurs (50x+)
       if (result.multiplier >= 50) {

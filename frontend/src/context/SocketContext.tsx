@@ -150,6 +150,21 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    s.on('challenge:completed', (data: { pseudo: string; description: string; reward: number; emoji: string }) => {
+      sfx.achievement();
+      toast.custom(() => (
+        <div className="bg-casino-card border border-purple-500/50 rounded-xl px-5 py-4 shadow-xl flex items-center gap-3 max-w-sm">
+          <span className="text-4xl">{data.emoji}</span>
+          <div>
+            <div className="text-purple-400 font-bold text-sm">Défi du Jour remporté !</div>
+            <div className="text-white font-bold text-sm">{data.pseudo}</div>
+            <div className="text-gray-400 text-xs mt-0.5">{data.description}</div>
+            <div className="text-yellow-400 font-black text-sm mt-1">+{data.reward.toLocaleString('fr-FR')} F€</div>
+          </div>
+        </div>
+      ), { duration: 8000 });
+    });
+
     s.on('pay:confirmed', (data) => {
       toast.success(`💸 ${data.amount.toLocaleString('fr-FR')} F€ envoyés à ${data.to} !`);
     });

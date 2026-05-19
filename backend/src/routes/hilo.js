@@ -4,6 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const { startHilo, guessHilo, cashoutHilo, getHiloSession } = require('../games/hilo');
 const { getIo } = require('../socket/ioInstance');
 const { grantXp } = require('../games/xp');
+const { tryCompleteChallenge } = require('./challenge');
 
 const router = express.Router();
 
@@ -108,6 +109,8 @@ router.post('/cashout', authenticate, async (req, res) => {
         positive: true,
       });
     }
+
+    tryCompleteChallenge(req.user.id, 'hilo_cashout', { wins: result.wins ?? 0 }).catch(() => {});
 
     res.json({ ...result, newBalance: updated.balance });
   } catch (err) {

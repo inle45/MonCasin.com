@@ -3,6 +3,7 @@ const prisma = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { grantXp } = require('../games/xp');
 const { getIo } = require('../socket/ioInstance');
+const { tryCompleteChallenge } = require('./challenge');
 
 const router = express.Router();
 
@@ -77,6 +78,8 @@ router.post('/play', authenticate, async (req, res) => {
         });
       }
     }
+
+    tryCompleteChallenge(req.user.id, 'plinko_result', { risk, bucket, rows }).catch(() => {});
 
     res.json({ path, bucket, multiplier, payout, newBalance });
   } catch (err) {

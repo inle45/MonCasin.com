@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { formatBalance } from '@/lib/api';
 import { sfx } from '@/lib/sfx';
-import { LogOut, ShoppingBag, Gift, Package, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star, Ticket, RotateCcw, Flag, ChevronDown, Gamepad2, Menu } from 'lucide-react';
+import { LogOut, ShoppingBag, Gift, Package, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star, Ticket, RotateCcw, Flag, ChevronDown, Gamepad2, Menu, Swords, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const GRADE_ICONS: Record<string, string> = {
@@ -28,6 +28,8 @@ const GAMES = [
 ];
 
 const MORE_LINKS = [
+  { href: '/challenge',  label: 'Défi du jour', icon: Swords        },
+  { href: '/scratch',    label: 'Grattage',    icon: Sparkles      },
   { href: '/quests',     label: 'Quêtes',      icon: ClipboardList },
   { href: '/race',       label: 'Wager Race',  icon: Flag          },
   { href: '/tournament', label: 'Tournoi',     icon: Trophy        },

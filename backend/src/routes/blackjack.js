@@ -4,6 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const { grantXp } = require('../games/xp');
 const { applyHappyHour, isHappyHour } = require('../utils/happyHour');
 const bj = require('../games/blackjack');
+const { tryCompleteChallenge } = require('./challenge');
 
 const router = express.Router();
 
@@ -54,6 +55,7 @@ router.post('/start', authenticate, async (req, res) => {
       }
       const newBalance = (await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } })).balance;
       grantXp(req.user.id, bet).catch(() => {});
+      tryCompleteChallenge(req.user.id, 'blackjack_result', { status: result.status }).catch(() => {});
       return res.json({ session: sessionView(session, false), result: { ...result, payout }, newBalance });
     }
 
@@ -131,6 +133,7 @@ async function finishGame(req, res, session) {
 
   const newBalance = (await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } })).balance;
   grantXp(req.user.id, bet).catch(() => {});
+  tryCompleteChallenge(req.user.id, 'blackjack_result', { status: result.status }).catch(() => {});
   res.json({ session: sessionView(session, false), result: { ...result, payout }, newBalance });
 }
 

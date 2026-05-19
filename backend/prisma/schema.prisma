@@ -258,6 +258,17 @@ model LotteryDraw {
   @@map("lottery_draws")
 }
 
+model DailyChallenge {
+  id           String    @id @default(uuid())
+  day          String    @unique
+  challengeKey String
+  winnerId     String?
+  winnerPseudo String?
+  completedAt  DateTime?
+
+  @@map("daily_challenges")
+}
+
 enum ItemType {
   TICKET_ROUE
   PASS_FREE_SPINS

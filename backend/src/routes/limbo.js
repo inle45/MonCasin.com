@@ -3,6 +3,7 @@ const prisma = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { grantXp } = require('../games/xp');
 const { getIo } = require('../socket/ioInstance');
+const { tryCompleteChallenge } = require('./challenge');
 
 const router = express.Router();
 const HOUSE_EDGE = 0.03;
@@ -63,6 +64,8 @@ router.post('/play', authenticate, async (req, res) => {
         });
       }
     }
+
+    tryCompleteChallenge(req.user.id, 'limbo_result', { won, target, result }).catch(() => {});
 
     res.json({ result, target, bet, won, payout, newBalance });
   } catch (err) {
