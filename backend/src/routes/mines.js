@@ -2,6 +2,7 @@ const express = require('express');
 const prisma = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { demarrerMines, revelerCase, cashout, getSession } = require('../games/mines');
+const { getIo } = require('../socket/ioInstance');
 
 const router = express.Router();
 
@@ -116,7 +117,20 @@ router.post('/cashout', authenticate, async (req, res) => {
       }),
     ]);
 
-    const updatedUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } });
+    const updatedUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true, pseudo: true } });
+
+    if (result.gain >= 300) {
+      const io = getIo();
+      if (io) io.emit('livefeed:event', {
+        id: `mn-${Date.now()}`,
+        pseudo: updatedUser.pseudo,
+        emoji: result.gain >= 2000 ? '💎' : '💣',
+        message: `cashout ×${result.multiplicateur} aux Mines`,
+        amount: result.gain,
+        positive: true,
+      });
+    }
+
     res.json({ ...result, newBalance: updatedUser.balance });
   } catch (err) {
     console.error('Erreur mines cashout:', err);

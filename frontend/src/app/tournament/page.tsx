@@ -41,6 +41,14 @@ const RANK_STYLES: Record<number, { bg: string; border: string; glow: string }> 
   3: { bg: 'rgba(180,83,9,0.12)', border: '2px solid #b45309', glow: '0 0 12px rgba(180,83,9,0.2)' },
 };
 
+function getEloDivision(rank: number): { label: string; icon: string; color: string } {
+  if (rank === 1) return { label: 'Légende', icon: '👑', color: '#f59e0b' };
+  if (rank === 2) return { label: 'Diamant', icon: '💎', color: '#c084fc' };
+  if (rank === 3) return { label: 'Or', icon: '🏆', color: '#b45309' };
+  if (rank <= 5) return { label: 'Argent', icon: '🥈', color: '#94a3b8' };
+  return { label: 'Bronze', icon: '🥉', color: '#92400e' };
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
 }
@@ -155,6 +163,7 @@ export default function TournamentPage() {
               glow: 'none',
             };
             const isMe = player.id === user?.id;
+            const elo = getEloDivision(rank);
 
             return (
               <motion.div
@@ -186,7 +195,13 @@ export default function TournamentPage() {
                     {player.pseudo}
                     {isMe && <span className="text-xs text-green-400 font-normal">(toi)</span>}
                   </div>
-                  <div className="text-xs text-gray-500">{player.bets} mises · {player.wins} victoires</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px]" title={`Division ${elo.label}`} style={{ color: elo.color }}>
+                      {elo.icon} {elo.label}
+                    </span>
+                    <span className="text-gray-600">·</span>
+                    <span className="text-xs text-gray-500">{player.bets} mises</span>
+                  </div>
                 </div>
 
                 {/* Profit */}

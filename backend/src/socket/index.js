@@ -190,6 +190,19 @@ function initSocket(io) {
         newBalance,
       });
 
+      // Live feed — cashout notable (≥2x ou ≥500 F€)
+      if (result.multiplier >= 2 || result.winAmount >= 500) {
+        const emoji = result.multiplier >= 10 ? '🚀' : result.multiplier >= 5 ? '🔥' : '⚡';
+        io.emit('livefeed:event', {
+          id: `cf-${Date.now()}`,
+          pseudo: user.pseudo,
+          emoji,
+          message: `cashout à ${result.multiplier.toFixed(2)}x au Crash`,
+          amount: result.winAmount,
+          positive: true,
+        });
+      }
+
       // Vérifier succès : Chasseur de Multiplicateurs (50x+)
       if (result.multiplier >= 50) {
         await grantAchievement(socket, user.id, 'chasseur-multiplicateurs', io);
@@ -338,6 +351,21 @@ function initSocket(io) {
         ]);
 
         if (result.totalWin > 0) {
+          // Live feed — gros gain roulette
+          if (result.totalWin >= 500) {
+            const rUser = await prisma.user.findUnique({ where: { id: result.userId }, select: { pseudo: true } });
+            if (rUser) {
+              io.emit('livefeed:event', {
+                id: `rl-${Date.now()}-${result.userId}`,
+                pseudo: rUser.pseudo,
+                emoji: result.totalWin >= 5000 ? '💸' : '🎡',
+                message: `a gagné à la Roulette`,
+                amount: result.totalWin,
+                positive: true,
+              });
+            }
+          }
+
           const userSocket = findUserSocket(io, result.userId);
           if (userSocket) {
             await checkFirstWinAchievement(userSocket, result.userId, io);

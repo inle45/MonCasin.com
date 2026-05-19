@@ -87,6 +87,8 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
+const GRADE_BONUS = { NONE: 1.0, SILVER: 1.05, GOLD: 1.10, PLATINUM: 1.15, DIAMOND: 1.25 };
+
 // POST /api/quests/:key/claim — réclamer la récompense
 router.post('/:key/claim', authenticate, async (req, res) => {
   try {
@@ -105,28 +107,34 @@ router.post('/:key/claim', authenticate, async (req, res) => {
     const dayStart = new Date(today);
     const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
-    const bets = await prisma.bet.findMany({
-      where: { userId: req.user.id, createdAt: { gte: dayStart, lt: dayEnd } },
-      select: { game: true, amount: true, won: true, multiplier: true },
-    });
+    const [bets, user] = await Promise.all([
+      prisma.bet.findMany({
+        where: { userId: req.user.id, createdAt: { gte: dayStart, lt: dayEnd } },
+        select: { game: true, amount: true, won: true, multiplier: true },
+      }),
+      prisma.user.findUnique({ where: { id: req.user.id }, select: { grade: true } }),
+    ]);
 
     const progress = computeProgress(key, bets);
     if (progress < quest.target) {
       return res.status(400).json({ error: 'Quête non complétée', progress, target: quest.target });
     }
 
+    const gradeMult = GRADE_BONUS[user.grade] || 1.0;
+    const finalReward = Math.round(quest.reward * gradeMult);
+
     await prisma.$transaction([
       prisma.userDailyQuest.create({
         data: { userId: req.user.id, questKey: key, day: today, claimedAt: new Date() },
       }),
-      prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: quest.reward } } }),
+      prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: finalReward } } }),
       prisma.transaction.create({
-        data: { userId: req.user.id, type: 'BONUS', amount: quest.reward, description: `Quête : ${quest.title}` },
+        data: { userId: req.user.id, type: 'BONUS', amount: finalReward, description: `Quête : ${quest.title}` },
       }),
     ]);
 
     const updatedUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } });
-    res.json({ ok: true, reward: quest.reward, newBalance: updatedUser.balance });
+    res.json({ ok: true, reward: finalReward, baseReward: quest.reward, gradeBonus: gradeMult, newBalance: updatedUser.balance });
   } catch (err) {
     console.error('Erreur claim quête:', err);
     res.status(500).json({ error: 'Erreur réclamation' });

@@ -6,19 +6,31 @@ import { useAuth } from './AuthContext';
 import toast from 'react-hot-toast';
 import { sfx } from '@/lib/sfx';
 
+export interface LiveEvent {
+  id: string;
+  pseudo: string;
+  emoji: string;
+  message: string;
+  amount: number;
+  positive: boolean;
+  ts: number;
+}
+
 interface SocketContextType {
   socket: Socket | null;
   connected: boolean;
   jackpot: number;
+  liveEvents: LiveEvent[];
 }
 
-const SocketContext = createContext<SocketContextType>({ socket: null, connected: false, jackpot: 0 });
+const SocketContext = createContext<SocketContextType>({ socket: null, connected: false, jackpot: 0, liveEvents: [] });
 
 export function SocketProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [jackpot, setJackpot] = useState(0);
+  const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
 
   useEffect(() => {
     if (!token) {
@@ -33,6 +45,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     s.on('disconnect', () => setConnected(false));
 
     s.on('slots:jackpot', (data) => setJackpot(data.jackpot ?? 0));
+
+    s.on('livefeed:event', (data) => {
+      setLiveEvents(prev => [{ ...data, ts: Date.now() }, ...prev].slice(0, 8));
+    });
 
     s.on('achievement:unlocked', (data) => {
       sfx.achievement();
@@ -69,7 +85,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   }, [token]);
 
   return (
-    <SocketContext.Provider value={{ socket, connected, jackpot }}>
+    <SocketContext.Provider value={{ socket, connected, jackpot, liveEvents }}>
       {children}
     </SocketContext.Provider>
   );

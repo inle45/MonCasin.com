@@ -104,4 +104,41 @@ router.get('/history', authenticate, async (req, res) => {
   }
 });
 
+const GRADE_DAILY_INCOME = { NONE: 0, SILVER: 100, GOLD: 250, PLATINUM: 500, DIAMOND: 1000 };
+
+router.post('/grade-income', authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { grade: true } });
+    const income = GRADE_DAILY_INCOME[user.grade] || 0;
+    if (income === 0) return res.status(400).json({ error: 'Votre grade ne génère pas de revenu passif' });
+
+    const today = new Date().toISOString().split('T')[0];
+    const dayStart = new Date(today);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    const existing = await prisma.transaction.findFirst({
+      where: {
+        userId: req.user.id,
+        type: 'BONUS',
+        description: 'Revenu quotidien grade',
+        createdAt: { gte: dayStart, lt: dayEnd },
+      },
+    });
+    if (existing) return res.status(400).json({ error: 'Revenu déjà réclamé aujourd\'hui' });
+
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: req.user.id }, data: { balance: { increment: income } } }),
+      prisma.transaction.create({
+        data: { userId: req.user.id, type: 'BONUS', amount: income, description: 'Revenu quotidien grade' },
+      }),
+    ]);
+
+    const updated = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } });
+    res.json({ ok: true, income, newBalance: updated.balance });
+  } catch (err) {
+    console.error('Erreur grade-income:', err);
+    res.status(500).json({ error: 'Erreur interne' });
+  }
+});
+
 module.exports = router;

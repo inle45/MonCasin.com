@@ -2,6 +2,7 @@ const express = require('express');
 const prisma = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { startHilo, guessHilo, cashoutHilo, getHiloSession } = require('../games/hilo');
+const { getIo } = require('../socket/ioInstance');
 
 const router = express.Router();
 
@@ -91,7 +92,20 @@ router.post('/cashout', authenticate, async (req, res) => {
       }),
     ]);
 
-    const updated = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true } });
+    const updated = await prisma.user.findUnique({ where: { id: req.user.id }, select: { balance: true, pseudo: true } });
+
+    if (result.gain >= 200) {
+      const io = getIo();
+      if (io) io.emit('livefeed:event', {
+        id: `hl-${Date.now()}`,
+        pseudo: updated.pseudo,
+        emoji: result.multiplier >= 5 ? '🃏' : '🎴',
+        message: `cashout ×${result.multiplier} au Hi-Lo`,
+        amount: result.gain,
+        positive: true,
+      });
+    }
+
     res.json({ ...result, newBalance: updated.balance });
   } catch (err) {
     console.error('Erreur hilo cashout:', err);

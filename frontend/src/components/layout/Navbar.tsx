@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { formatBalance } from '@/lib/api';
 import { sfx } from '@/lib/sfx';
-import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList, Volume2, VolumeX, BarChart2 } from 'lucide-react';
+import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const GRADE_ICONS: Record<string, string> = {
@@ -30,6 +30,7 @@ const MORE_LINKS = [
   { href: '/quests',     label: 'Quêtes',   icon: ClipboardList },
   { href: '/stats',      label: 'Mes stats', icon: BarChart2    },
   { href: '/tournament', label: 'Tournoi',  icon: Trophy        },
+  { href: '/grades',     label: 'Grades',   icon: Star          },
   { href: '/shop',       label: 'Boutique', icon: ShoppingBag   },
   { href: '/bonuses',    label: 'Bonus',    icon: Gift          },
   { href: '/inventory',  label: 'Mon sac',  icon: Package       },
