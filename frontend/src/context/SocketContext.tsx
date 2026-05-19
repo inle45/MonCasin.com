@@ -73,6 +73,21 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       toast.success(`💸 ${data.from} t'a envoyé ${data.amount.toLocaleString('fr-FR')} F€ !`, { duration: 5000 });
     });
 
+    s.on('rain:received', (data) => {
+      sfx.coin();
+      updateUser({ balance: data.newBalance });
+      toast.custom(() => (
+        <div className="bg-casino-card border border-blue-400/50 rounded-xl px-5 py-4 shadow-xl flex items-center gap-3 max-w-sm">
+          <span className="text-4xl">☔</span>
+          <div>
+            <div className="text-blue-400 font-bold text-sm">Il pleut des F€ !</div>
+            <div className="text-white font-bold">{data.from} fait pleuvoir</div>
+            <div className="text-green-400 text-xs mt-1 font-bold">+{data.amount.toLocaleString('fr-FR')} F€ pour toi !</div>
+          </div>
+        </div>
+      ), { duration: 6000 });
+    });
+
     s.on('loan:repaid', (data) => {
       toast(`🏦 ${data.deducted.toLocaleString('fr-FR')} F€ déduits pour le remboursement du prêt`, { icon: '🏦', duration: 4000 });
     });

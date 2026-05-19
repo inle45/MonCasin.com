@@ -88,6 +88,12 @@ function initSocket(io) {
         return;
       }
 
+      // /rain command
+      if (raw.startsWith('/rain ')) {
+        await handleRainCommand(socket, raw, io);
+        return;
+      }
+
       const sanitized = raw.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
       const message = await prisma.chatMessage.create({
@@ -289,17 +295,23 @@ function initSocket(io) {
     for (const result of data.results) {
       if (!result.cashedOut && result.amount > 0) {
         try {
-          await prisma.bet.create({
-            data: {
-              userId: result.userId,
-              game: 'CRASH',
-              amount: result.amount,
-              multiplier: 0,
-              result: 0,
-              won: false,
-              details: { crashedAt: data.crashPoint },
-            },
-          });
+          await prisma.$transaction([
+            prisma.bet.create({
+              data: {
+                userId: result.userId,
+                game: 'CRASH',
+                amount: result.amount,
+                multiplier: 0,
+                result: 0,
+                won: false,
+                details: { crashedAt: data.crashPoint },
+              },
+            }),
+            prisma.user.update({
+              where: { id: result.userId },
+              data: { rakeback: { increment: result.amount * 0.05 } },
+            }),
+          ]);
           grantXp(result.userId, result.amount).catch(() => {});
         } catch {}
       }
@@ -340,6 +352,9 @@ function initSocket(io) {
           if (userSocket) userSocket.emit('loan:repaid', { deducted: loanDeducted });
         }
 
+        const rouletteUpdates = { balance: { increment: winAmount } };
+        if (result.totalWin === 0) rouletteUpdates.rakeback = { increment: result.totalBet * 0.05 };
+
         await prisma.$transaction([
           prisma.bet.create({
             data: {
@@ -353,7 +368,7 @@ function initSocket(io) {
           }),
           prisma.user.update({
             where: { id: result.userId },
-            data: { balance: { increment: winAmount } },
+            data: rouletteUpdates,
           }),
         ]);
 
@@ -403,6 +418,73 @@ function initSocket(io) {
   });
 
   // ─── HELPERS ────────────────────────────────────────────
+
+  async function handleRainCommand(socket, raw, io) {
+    const parts = raw.split(' ');
+    const amount = parseFloat(parts[1]);
+
+    if (isNaN(amount) || amount < 100) {
+      socket.emit('error', { message: 'Minimum 100 F€ pour faire pleuvoir !' });
+      return;
+    }
+
+    const sender = await prisma.user.findUnique({ where: { id: socket.user.id } });
+    if (sender.balance < amount) {
+      socket.emit('error', { message: 'Solde insuffisant pour la pluie' });
+      return;
+    }
+
+    const allSockets = await io.fetchSockets();
+    const recipients = allSockets
+      .filter(s => s.user && s.user.id !== socket.user.id)
+      .map(s => s.user.id);
+
+    const unique = [...new Set(recipients)];
+
+    if (unique.length < 2) {
+      socket.emit('error', { message: 'Pas assez de joueurs en ligne pour faire pleuvoir !' });
+      return;
+    }
+
+    const share = Math.floor(amount / unique.length);
+    if (share < 1) {
+      socket.emit('error', { message: 'Montant trop faible pour être distribué' });
+      return;
+    }
+
+    const realTotal = share * unique.length;
+
+    await prisma.user.update({ where: { id: socket.user.id }, data: { balance: { decrement: realTotal } } });
+    await prisma.transaction.create({
+      data: { userId: socket.user.id, type: 'TRANSFER', amount: -realTotal, description: `Rain x${unique.length} joueurs` },
+    });
+
+    for (const uid of unique) {
+      await prisma.user.update({ where: { id: uid }, data: { balance: { increment: share } } });
+      await prisma.transaction.create({
+        data: { userId: uid, type: 'BONUS', amount: share, description: `Rain de ${sender.pseudo}` },
+      });
+      const targetSocket = findUserSocket(io, uid);
+      if (targetSocket) {
+        const newBal = (await prisma.user.findUnique({ where: { id: uid }, select: { balance: true } })).balance;
+        targetSocket.emit('rain:received', { from: sender.pseudo, amount: share, newBalance: newBal });
+      }
+    }
+
+    const newBalance = (await prisma.user.findUnique({ where: { id: socket.user.id }, select: { balance: true } })).balance;
+    socket.emit('pay:confirmed', { to: 'tous', amount: realTotal, newBalance });
+
+    const sysMsg = {
+      id: `rain-${Date.now()}`,
+      userId: 'system',
+      pseudo: '🌧️ Rain',
+      content: `☔ ${sender.pseudo} fait pleuvoir ${realTotal.toLocaleString('fr-FR')} F€ sur ${unique.length} joueurs (+${share.toLocaleString('fr-FR')} F€ chacun) !`,
+      createdAt: new Date(),
+      isSystem: true,
+    };
+    chatHistory.push(sysMsg);
+    io.to('lobby').emit('chat:message', sysMsg);
+  }
 
   async function handlePayCommand(socket, raw) {
     const parts = raw.split(' ');

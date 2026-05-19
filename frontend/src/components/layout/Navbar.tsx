@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { formatBalance } from '@/lib/api';
 import { sfx } from '@/lib/sfx';
-import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star, Ticket } from 'lucide-react';
+import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star, Ticket, TrendingUp, RotateCcw } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const GRADE_ICONS: Record<string, string> = {
@@ -16,13 +16,14 @@ const GRADE_ICONS: Record<string, string> = {
 
 // Jeux principaux — icônes uniquement dans la navbar
 const GAMES = [
-  { href: '/dashboard',     emoji: '🏠', label: 'Accueil'  },
-  { href: '/games/crash',   emoji: '⚡', label: 'Crash'    },
-  { href: '/games/roulette',emoji: '🎡', label: 'Roulette' },
-  { href: '/games/slots',   emoji: '🎰', label: 'Slots'    },
-  { href: '/games/dice',    emoji: '🎲', label: 'Dice'     },
-  { href: '/games/mines',   emoji: '💣', label: 'Mines'    },
-  { href: '/games/hilo',    emoji: '🃏', label: 'Hi-Lo'    },
+  { href: '/dashboard',      emoji: '🏠', label: 'Accueil'  },
+  { href: '/games/crash',    emoji: '⚡', label: 'Crash'    },
+  { href: '/games/roulette', emoji: '🎡', label: 'Roulette' },
+  { href: '/games/slots',    emoji: '🎰', label: 'Slots'    },
+  { href: '/games/dice',     emoji: '🎲', label: 'Dice'     },
+  { href: '/games/mines',    emoji: '💣', label: 'Mines'    },
+  { href: '/games/hilo',     emoji: '🃏', label: 'Hi-Lo'    },
+  { href: '/games/limbo',    emoji: '🌙', label: 'Limbo'    },
 ];
 
 // Menu "Plus" — quêtes, stats, tournoi, boutique, bonus, inventaire
@@ -30,7 +31,8 @@ const MORE_LINKS = [
   { href: '/quests',     label: 'Quêtes',   icon: ClipboardList },
   { href: '/stats',      label: 'Mes stats', icon: BarChart2    },
   { href: '/tournament', label: 'Tournoi',  icon: Trophy        },
-  { href: '/lottery',    label: 'Loterie',  icon: Ticket        },
+  { href: '/lottery',    label: 'Loterie',   icon: Ticket      },
+  { href: '/rakeback',   label: 'Rakeback',  icon: RotateCcw   },
   { href: '/grades',     label: 'Grades',   icon: Star          },
   { href: '/shop',       label: 'Boutique', icon: ShoppingBag   },
   { href: '/bonuses',    label: 'Bonus',    icon: Gift          },

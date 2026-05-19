@@ -17,6 +17,8 @@ const tournamentRoutes = require('./routes/tournament');
 const questRoutes = require('./routes/quests');
 const hiloRoutes = require('./routes/hilo');
 const { router: lotteryRoutes, checkPendingDraw } = require('./routes/lottery');
+const limboRoutes = require('./routes/limbo');
+const rakebackRoutes = require('./routes/rakeback');
 const { initSocket } = require('./socket/index');
 const { setIo } = require('./socket/ioInstance');
 
@@ -60,6 +62,8 @@ app.use('/api/tournament', tournamentRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/games/hilo', hiloRoutes);
 app.use('/api/lottery', lotteryRoutes);
+app.use('/api/games/limbo', limboRoutes);
+app.use('/api/rakeback', rakebackRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
