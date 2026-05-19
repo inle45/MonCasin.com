@@ -7,14 +7,13 @@ import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { formatBalance } from '@/lib/api';
 import { sfx } from '@/lib/sfx';
-import { Zap, LogOut, ShoppingBag, Gift, Package, MoreHorizontal, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star, Ticket, RotateCcw, Flag } from 'lucide-react';
+import { LogOut, ShoppingBag, Gift, Package, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star, Ticket, RotateCcw, Flag, ChevronDown, Gamepad2, Menu } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const GRADE_ICONS: Record<string, string> = {
   NONE: '', SILVER: '🥈', GOLD: '🥇', PLATINUM: '💠', DIAMOND: '💎',
 };
 
-// Jeux principaux — icônes uniquement dans la navbar
 const GAMES = [
   { href: '/dashboard',      emoji: '🏠', label: 'Accueil'  },
   { href: '/games/crash',    emoji: '⚡', label: 'Crash'    },
@@ -27,34 +26,45 @@ const GAMES = [
   { href: '/games/plinko',   emoji: '🪙', label: 'Plinko'   },
 ];
 
-// Menu "Plus" — quêtes, stats, tournoi, boutique, bonus, inventaire
 const MORE_LINKS = [
-  { href: '/quests',     label: 'Quêtes',   icon: ClipboardList },
-  { href: '/stats',      label: 'Mes stats', icon: BarChart2    },
-  { href: '/tournament', label: 'Tournoi',  icon: Trophy        },
-  { href: '/race',       label: 'Wager Race', icon: Flag        },
-  { href: '/lottery',    label: 'Loterie',   icon: Ticket      },
-  { href: '/rakeback',   label: 'Rakeback',  icon: RotateCcw   },
-  { href: '/grades',     label: 'Grades',   icon: Star          },
-  { href: '/shop',       label: 'Boutique', icon: ShoppingBag   },
-  { href: '/bonuses',    label: 'Bonus',    icon: Gift          },
-  { href: '/inventory',  label: 'Mon sac',  icon: Package       },
+  { href: '/quests',     label: 'Quêtes',      icon: ClipboardList },
+  { href: '/race',       label: 'Wager Race',  icon: Flag          },
+  { href: '/tournament', label: 'Tournoi',     icon: Trophy        },
+  { href: '/lottery',    label: 'Loterie',     icon: Ticket        },
+  { href: '/rakeback',   label: 'Rakeback',    icon: RotateCcw     },
+  { href: '/grades',     label: 'Grades',      icon: Star          },
+  { href: '/stats',      label: 'Mes stats',   icon: BarChart2     },
+  { href: '/shop',       label: 'Boutique',    icon: ShoppingBag   },
+  { href: '/bonuses',    label: 'Bonus',       icon: Gift          },
+  { href: '/inventory',  label: 'Mon sac',     icon: Package       },
 ];
+
+function Dropdown({ open, children }: { open: boolean; children: React.ReactNode }) {
+  if (!open) return null;
+  return (
+    <div
+      className="absolute top-12 left-0 rounded-2xl shadow-2xl overflow-hidden z-50 min-w-[160px]"
+      style={{ background: '#131128', border: '1px solid rgba(245,158,11,0.2)' }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { connected, jackpot } = useSocket();
   const pathname = usePathname();
+  const [gamesOpen, setGamesOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [muted, setMuted] = useState(false);
+  const gamesRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Fermer le menu en cliquant ailleurs
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+      if (gamesRef.current && !gamesRef.current.contains(e.target as Node)) setGamesOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -65,114 +75,129 @@ export default function Navbar() {
   const isActive = (href: string) =>
     pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
 
+  const activeGame = GAMES.find(g => isActive(g.href));
+  const activeMore = MORE_LINKS.find(l => isActive(l.href));
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-casino-card/95 backdrop-blur border-b border-casino-border">
-      <div className="max-w-7xl mx-auto px-3 h-14 flex items-center justify-between gap-2">
+      <div className="max-w-7xl mx-auto px-3 h-14 flex items-center justify-between gap-3">
 
         {/* Logo */}
-        <Link href="/dashboard" className="flex-shrink-0 text-xl font-black text-casino-gold hidden sm:block">
-          MonCasin
+        <Link href="/dashboard" className="flex-shrink-0 font-black text-casino-gold text-lg">
+          🎰 <span className="hidden sm:inline">MonCasin</span>
         </Link>
 
-        {/* Jeux — icônes uniquement */}
-        <div className="flex items-center gap-0.5">
-          {GAMES.map(({ href, emoji, label }) => (
-            <Link
-              key={href}
-              href={href}
-              title={label}
-              className={clsx(
-                'w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all',
-                isActive(href)
-                  ? 'bg-casino-gold/15 text-casino-gold ring-1 ring-casino-gold/40'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              )}
-            >
-              {emoji}
-            </Link>
-          ))}
+        {/* Centre : menus déroulants */}
+        <div className="flex items-center gap-2 flex-1">
 
-          {/* Bouton "Plus" */}
-          <div className="relative" ref={menuRef}>
+          {/* Dropdown Jeux */}
+          <div className="relative" ref={gamesRef}>
             <button
-              onClick={() => setMenuOpen(v => !v)}
-              title="Plus"
+              onClick={() => { setGamesOpen(v => !v); setMenuOpen(false); }}
               className={clsx(
-                'w-9 h-9 rounded-lg flex items-center justify-center transition-all',
-                MORE_LINKS.some(l => pathname.startsWith(l.href))
-                  ? 'bg-casino-gold/15 text-casino-gold ring-1 ring-casino-gold/40'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all',
+                activeGame || gamesOpen
+                  ? 'bg-casino-gold/15 text-casino-gold border border-casino-gold/30'
+                  : 'text-gray-300 hover:text-white bg-white/5 hover:bg-white/10'
               )}
             >
-              <MoreHorizontal className="w-4 h-4" />
+              <span>{activeGame?.emoji ?? '🎮'}</span>
+              <span className="hidden sm:inline">{activeGame?.label ?? 'Jeux'}</span>
+              <ChevronDown className={clsx('w-3 h-3 transition-transform', gamesOpen && 'rotate-180')} />
             </button>
 
-            {menuOpen && (
-              <div className="absolute top-11 left-1/2 -translate-x-1/2 w-36 rounded-xl overflow-hidden shadow-xl"
-                style={{ background: '#1a1730', border: '1px solid rgba(245,158,11,0.2)' }}>
-                {MORE_LINKS.map(({ href, label, icon: Icon }) => (
+            <Dropdown open={gamesOpen}>
+              <div className="grid grid-cols-3 gap-0 p-2">
+                {GAMES.map(({ href, emoji, label }) => (
                   <Link
                     key={href}
                     href={href}
-                    onClick={() => setMenuOpen(false)}
+                    onClick={() => setGamesOpen(false)}
                     className={clsx(
-                      'flex items-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors',
-                      pathname.startsWith(href)
-                        ? 'text-casino-gold bg-casino-gold/10'
-                        : 'text-gray-300 hover:text-white hover:bg-white/5'
+                      'flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-medium transition-all',
+                      isActive(href)
+                        ? 'bg-casino-gold/15 text-casino-gold'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
                     )}
                   >
-                    <Icon className="w-4 h-4" />
-                    {label}
+                    <span className="text-2xl">{emoji}</span>
+                    <span>{label}</span>
                   </Link>
                 ))}
               </div>
-            )}
+            </Dropdown>
           </div>
-        </div>
 
-        {/* Droite : solde + point connexion + avatar */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Jackpot progressif */}
+          {/* Dropdown Menu */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => { setMenuOpen(v => !v); setGamesOpen(false); }}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all',
+                activeMore || menuOpen
+                  ? 'bg-casino-gold/15 text-casino-gold border border-casino-gold/30'
+                  : 'text-gray-300 hover:text-white bg-white/5 hover:bg-white/10'
+              )}
+            >
+              {activeMore ? <activeMore.icon className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              <span className="hidden sm:inline">{activeMore?.label ?? 'Menu'}</span>
+              <ChevronDown className={clsx('w-3 h-3 transition-transform', menuOpen && 'rotate-180')} />
+            </button>
+
+            <Dropdown open={menuOpen}>
+              {MORE_LINKS.map(({ href, label, icon: Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  className={clsx(
+                    'flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors',
+                    isActive(href)
+                      ? 'text-casino-gold bg-casino-gold/10'
+                      : 'text-gray-300 hover:text-white hover:bg-white/5'
+                  )}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  {label}
+                </Link>
+              ))}
+            </Dropdown>
+          </div>
+
+          {/* Jackpot slots */}
           {jackpot > 0 && (
-            <span className="hidden sm:flex items-center gap-1 text-xs font-black text-casino-gold bg-casino-gold/10 px-2 py-1 rounded-lg border border-casino-gold/20" title="Jackpot progressif Slots">
+            <span className="hidden md:flex items-center gap-1 text-xs font-black text-casino-gold bg-casino-gold/10 px-2 py-1 rounded-lg border border-casino-gold/20">
               🎰 {jackpot.toLocaleString('fr-FR')}
             </span>
           )}
+        </div>
 
-          {/* Bouton son */}
-          <button
-            onClick={() => setMuted(sfx.toggleMute())}
-            title={muted ? 'Activer le son' : 'Couper le son'}
-            className="text-gray-500 hover:text-casino-gold transition-colors p-1"
-          >
-            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
-
-          {/* Point connexion */}
-          <div
-            className={clsx('w-2 h-2 rounded-full', connected ? 'bg-green-400' : 'bg-red-400')}
-            title={connected ? 'Connecté' : 'Déconnecté'}
-          />
+        {/* Droite */}
+        <div className="flex items-center gap-2 flex-shrink-0">
 
           {/* Streak */}
           {(user.streak ?? 0) >= 2 && (
-            <span className="hidden sm:flex items-center gap-1 text-xs font-black text-orange-400 bg-orange-500/10 px-2 py-1 rounded-lg border border-orange-500/20" title={`Streak ${user.streak} jours`}>
-              🔥 {user.streak}
+            <span className="flex items-center gap-1 text-xs font-black text-orange-400 bg-orange-500/10 px-2 py-1 rounded-lg border border-orange-500/20">
+              🔥{user.streak}
             </span>
           )}
 
+          {/* Son */}
+          <button onClick={() => setMuted(sfx.toggleMute())} className="text-gray-500 hover:text-casino-gold transition-colors p-1">
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+
+          {/* Connexion */}
+          <div className={clsx('w-2 h-2 rounded-full flex-shrink-0', connected ? 'bg-green-400' : 'bg-red-400')} />
+
           {/* Solde */}
-          <span className="text-casino-gold font-bold text-sm hidden sm:block">
+          <span className="text-casino-gold font-bold text-sm">
             {formatBalance(user.balance)}
           </span>
 
-          {/* Avatar → profil */}
+          {/* Avatar */}
           <Link href="/profile" className="relative flex-shrink-0">
-            <div className={clsx(
-              'w-8 h-8 rounded-full overflow-hidden',
-              user.avatarBorder ? `border-${user.avatarBorder}` : 'border border-casino-border',
-            )}>
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-casino-border">
               <img
                 src={user.avatar || '/avatars/default-1.png'}
                 alt={user.pseudo}
@@ -190,12 +215,8 @@ export default function Navbar() {
             )}
           </Link>
 
-          {/* Déconnexion */}
-          <button
-            onClick={logout}
-            className="text-gray-600 hover:text-red-400 transition-colors p-1"
-            title="Déconnexion"
-          >
+          {/* Déco */}
+          <button onClick={logout} className="text-gray-600 hover:text-red-400 transition-colors p-1">
             <LogOut className="w-4 h-4" />
           </button>
         </div>
