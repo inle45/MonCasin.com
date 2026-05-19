@@ -12,26 +12,46 @@ interface AuthContextType {
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
   isLoading: boolean;
+  serverWaking: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+async function fetchMe(retries = 3): Promise<any> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await api.get('/auth/me', { timeout: 40000 });
+      return res.data.user;
+    } catch (err: any) {
+      if (err?.response?.status === 401) throw err;
+      if (i < retries - 1) await new Promise(r => setTimeout(r, 3000));
+      else throw err;
+    }
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [serverWaking, setServerWaking] = useState(false);
 
   useEffect(() => {
     const savedToken = localStorage.getItem('casino_token');
     if (savedToken) {
       setToken(savedToken);
-      api.get('/auth/me')
-        .then(res => setUser(res.data.user))
+      const wakingTimer = setTimeout(() => setServerWaking(true), 4000);
+      fetchMe()
+        .then(u => setUser(u))
         .catch(() => {
           localStorage.removeItem('casino_token');
           setToken(null);
         })
-        .finally(() => setIsLoading(false));
+        .finally(() => {
+          clearTimeout(wakingTimer);
+          setServerWaking(false);
+          setIsLoading(false);
+        });
     } else {
       setIsLoading(false);
     }
@@ -64,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, updateUser, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, updateUser, isLoading, serverWaking }}>
       {children}
     </AuthContext.Provider>
   );
