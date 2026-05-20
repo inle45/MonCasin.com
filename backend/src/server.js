@@ -66,6 +66,10 @@ app.use('/api/avatars', express.static(path.join(__dirname, '../public/avatars')
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/shop', shopRoutes);
+// Nouveaux jeux — montés AVANT /api/games pour éviter les conflits de préfixe
+app.use('/api/games/wheel', wheelRoutes);
+app.use('/api/games/baccarat', baccaratRoutes);
+app.use('/api/games/horses', horsesRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/bonuses', bonusRoutes);
 app.use('/api/inventory', inventoryRoutes);
@@ -80,9 +84,6 @@ app.use('/api/games/plinko', plinkoRoutes);
 app.use('/api/games/blackjack', blackjackRoutes);
 app.get('/api/happyhour', (req, res) => res.json(getHappyHourStatus()));
 app.get('/api/weather', (req, res) => res.json(getWeather()));
-app.use('/api/games/wheel', wheelRoutes);
-app.use('/api/games/baccarat', baccaratRoutes);
-app.use('/api/games/horses', horsesRoutes);
 app.use('/api/rakeback', rakebackRoutes);
 app.use('/api/race', raceRoutes);
 app.use('/api/challenge', challengeRoutes);

@@ -41,6 +41,7 @@ router.post('/buy/:itemId', authenticate, async (req, res) => {
     if (item.type === 'GRADE') updateData.grade = item.value;
     if (item.type === 'AVATAR_BORDER') updateData.avatarBorder = item.value;
     if (item.type === 'PSEUDO_COLOR') updateData.pseudoColor = item.value;
+    if (item.type === 'TABLE_THEME') updateData.tableTheme = item.value;
 
     const [updatedUser] = await prisma.$transaction([
       prisma.user.update({

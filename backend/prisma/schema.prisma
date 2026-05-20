@@ -18,6 +18,7 @@ model User {
   grade         Grade     @default(NONE)
   avatarBorder  String?
   pseudoColor   String?
+  tableTheme    String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -149,6 +150,7 @@ enum ShopItemType {
   GRADE
   AVATAR_BORDER
   PSEUDO_COLOR
+  TABLE_THEME
 }
 
 model Achievement {

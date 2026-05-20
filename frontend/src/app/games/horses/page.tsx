@@ -19,6 +19,7 @@ const BETS = [100, 250, 500, 1000, 2500];
 export default function HorsesPage() {
   const { user, updateUser } = useAuth();
   const [horses, setHorses] = useState<Horse[]>([]);
+  const [loadingOdds, setLoadingOdds] = useState(true);
   const [selected, setSelected] = useState<number | null>(null);
   const [bet, setBet] = useState(250);
   const [racing, setRacing] = useState(false);
@@ -26,9 +27,15 @@ export default function HorsesPage() {
   const [result, setResult] = useState<RaceResult | null>(null);
   const [history, setHistory] = useState<{ name: string; won: boolean; payout: number }[]>([]);
 
-  useEffect(() => {
-    api.get('/games/horses/odds').then(r => setHorses(r.data.horses)).catch(() => {});
-  }, []);
+  const loadOdds = () => {
+    setLoadingOdds(true);
+    api.get('/games/horses/odds')
+      .then(r => setHorses(r.data.horses))
+      .catch(() => toast.error('Impossible de charger les cotes — réessaie'))
+      .finally(() => setLoadingOdds(false));
+  };
+
+  useEffect(() => { loadOdds(); }, []);
 
   const startRace = async () => {
     if (racing || !selected || !user || user.balance < bet) return;
@@ -153,7 +160,21 @@ export default function HorsesPage() {
 
         {/* Choix du cheval */}
         <div>
-          <div className="text-xs text-gray-400 uppercase tracking-wider mb-2">Choisissez votre cheval</div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs text-gray-400 uppercase tracking-wider">Choisissez votre cheval</div>
+            {!loadingOdds && <button onClick={loadOdds} className="text-xs text-casino-gold hover:underline">↻ Actualiser les cotes</button>}
+          </div>
+          {loadingOdds ? (
+            <div className="grid grid-cols-2 gap-2">
+              {[1,2,3,4,5,6].map(i => <div key={i} className="h-20 rounded-xl animate-pulse bg-white/5" />)}
+            </div>
+          ) : horses.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="text-3xl mb-2">🏇</div>
+              <div className="text-sm">Impossible de charger les chevaux</div>
+              <button onClick={loadOdds} className="mt-3 px-4 py-2 bg-casino-gold/20 text-casino-gold rounded-xl text-sm font-bold hover:bg-casino-gold/30">Réessayer</button>
+            </div>
+          ) : (
           <div className="grid grid-cols-2 gap-2">
             {horses.map(horse => (
               <button key={horse.id} onClick={() => { if (!racing) setSelected(horse.id); }}
@@ -171,6 +192,7 @@ export default function HorsesPage() {
               </button>
             ))}
           </div>
+          )}
         </div>
 
         {/* Mise */}
