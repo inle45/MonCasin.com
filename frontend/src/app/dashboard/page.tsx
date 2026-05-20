@@ -10,6 +10,7 @@ import ChatPanel from '@/components/chat/ChatPanel';
 import Leaderboard from '@/components/leaderboard/Leaderboard';
 import api, { formatBalance, getAvatarUrl } from '@/lib/api';
 import { Zap, ShoppingBag } from 'lucide-react';
+import { SkeletonDashboard } from '@/components/ui/Skeleton';
 
 const GAMES = [
   {
@@ -176,8 +177,9 @@ export default function DashboardPage() {
 
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen bg-casino-dark flex items-center justify-center">
-        <div className="text-casino-gold animate-pulse text-xl">Chargement...</div>
+      <div className="min-h-screen bg-casino-dark">
+        <Navbar />
+        <SkeletonDashboard />
       </div>
     );
   }

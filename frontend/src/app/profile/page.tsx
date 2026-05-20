@@ -9,6 +9,7 @@ import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 import { Camera, User } from 'lucide-react';
+import ThemePicker from '@/components/ui/ThemePicker';
 
 interface AdvancedStats {
   bestWin: { profit: number; game: string; multiplier: number | null; date: string } | null;
@@ -201,6 +202,9 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
+
+          {/* Thème de couleur */}
+          <ThemePicker />
 
           {/* Modifier le pseudo */}
           <div>

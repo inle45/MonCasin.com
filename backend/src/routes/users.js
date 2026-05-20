@@ -115,6 +115,62 @@ router.get('/leaderboard', async (req, res) => {
   }
 });
 
+router.get('/leaderboard/games', async (req, res) => {
+  try {
+    const [crashTop, limboTop, plinkoTop, wageredTop] = await Promise.all([
+      // Top Crash : meilleur cashout (multiplier)
+      prisma.bet.findMany({
+        where: { game: 'CRASH', won: true, multiplier: { gt: 1 } },
+        orderBy: { multiplier: 'desc' },
+        take: 5,
+        include: { user: { select: { pseudo: true, avatar: true, grade: true } } },
+      }),
+      // Top Limbo : meilleur multiplicateur (jeux stockés comme SLOTS avec details.game)
+      prisma.bet.findMany({
+        where: { game: 'SLOTS', won: true, multiplier: { gt: 1 }, details: { path: ['game'], equals: 'HILO' } },
+        orderBy: { multiplier: 'desc' },
+        take: 5,
+        include: { user: { select: { pseudo: true, avatar: true, grade: true } } },
+      }),
+      // Top Plinko : plus gros gain
+      prisma.bet.findMany({
+        where: { game: 'SLOTS', won: true, details: { path: ['game'], string_contains: 'MINES' } },
+        orderBy: { result: 'desc' },
+        take: 5,
+        include: { user: { select: { pseudo: true, avatar: true, grade: true } } },
+      }),
+      // Top parieurs : plus gros volume misé total
+      prisma.bet.groupBy({
+        by: ['userId'],
+        _sum: { amount: true },
+        orderBy: { _sum: { amount: 'desc' } },
+        take: 5,
+      }),
+    ]);
+
+    // Enrichir le top wagered avec les infos user
+    const wageredUserIds = wageredTop.map(w => w.userId);
+    const wageredUsers = await prisma.user.findMany({
+      where: { id: { in: wageredUserIds } },
+      select: { id: true, pseudo: true, avatar: true, grade: true },
+    });
+    const wageredWithUser = wageredTop.map(w => ({
+      ...w,
+      user: wageredUsers.find(u => u.id === w.userId),
+    }));
+
+    res.json({
+      crashTop: crashTop.map(b => ({ pseudo: b.user.pseudo, avatar: b.user.avatar, grade: b.user.grade, value: b.multiplier, label: `×${b.multiplier?.toFixed(2)}` })),
+      limboTop: limboTop.map(b => ({ pseudo: b.user.pseudo, avatar: b.user.avatar, grade: b.user.grade, value: b.multiplier, label: `×${b.multiplier?.toFixed(2)}` })),
+      plinkoTop: plinkoTop.map(b => ({ pseudo: b.user.pseudo, avatar: b.user.avatar, grade: b.user.grade, value: b.result, label: `${Math.round(b.result ?? 0).toLocaleString('fr-FR')} F€` })),
+      wageredTop: wageredWithUser.map(w => ({ pseudo: w.user?.pseudo, avatar: w.user?.avatar, grade: w.user?.grade, value: w._sum.amount, label: `${Math.round(w._sum.amount ?? 0).toLocaleString('fr-FR')} F€` })),
+    });
+  } catch (err) {
+    console.error('Erreur leaderboard jeux:', err);
+    res.status(500).json({ error: 'Erreur classement' });
+  }
+});
+
 router.get('/profile/:id', authenticate, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({

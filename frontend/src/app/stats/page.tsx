@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Navbar from '@/components/layout/Navbar';
 import api, { formatBalance } from '@/lib/api';
+import { SkeletonStats } from '@/components/ui/Skeleton';
 
 type GameStat = {
   game: string;
@@ -126,7 +127,7 @@ export default function StatsPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-gray-500">Chargement...</div>
+          <SkeletonStats />
         ) : (
           <>
             {/* Big 4 */}

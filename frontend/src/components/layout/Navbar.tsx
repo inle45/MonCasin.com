@@ -39,6 +39,7 @@ const MORE_LINKS = [
   { href: '/rakeback',   label: 'Rakeback',    icon: RotateCcw     },
   { href: '/grades',     label: 'Grades',      icon: BarChart2     },
   { href: '/stats',      label: 'Mes stats',   icon: BarChart2     },
+  { href: '/leaderboard', label: 'Classements', icon: Trophy        },
   { href: '/shop',       label: 'Boutique',    icon: ShoppingBag   },
   { href: '/bonuses',    label: 'Bonus',       icon: Gift          },
   { href: '/inventory',  label: 'Mon sac',     icon: Package       },

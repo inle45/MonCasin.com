@@ -27,7 +27,49 @@ body {
   --casino-card: #12121f;
   --casino-border: #1e1e35;
   --casino-gold: #f59e0b;
+  --accent: #f59e0b;
+  --accent-dim: rgba(245,158,11,0.15);
+  --accent-glow: rgba(245,158,11,0.4);
 }
+
+/* ── Thème Violet ───────────────────────────────────────── */
+[data-theme="purple"] {
+  --casino-gold: #8b5cf6;
+  --accent: #8b5cf6;
+  --accent-dim: rgba(139,92,246,0.15);
+  --accent-glow: rgba(139,92,246,0.4);
+}
+[data-theme="purple"] ::-webkit-scrollbar-thumb:hover { background: #8b5cf6; }
+[data-theme="purple"] .text-casino-gold { color: #8b5cf6 !important; }
+[data-theme="purple"] .bg-casino-gold { background-color: #8b5cf6 !important; }
+[data-theme="purple"] .border-casino-gold { border-color: #8b5cf6 !important; }
+[data-theme="purple"] .btn-gold-glow { box-shadow: 0 0 20px rgba(139,92,246,0.5) !important; }
+
+/* ── Thème Bleu ─────────────────────────────────────────── */
+[data-theme="blue"] {
+  --casino-gold: #3b82f6;
+  --accent: #3b82f6;
+  --accent-dim: rgba(59,130,246,0.15);
+  --accent-glow: rgba(59,130,246,0.4);
+}
+[data-theme="blue"] ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+[data-theme="blue"] .text-casino-gold { color: #3b82f6 !important; }
+[data-theme="blue"] .bg-casino-gold { background-color: #3b82f6 !important; }
+[data-theme="blue"] .border-casino-gold { border-color: #3b82f6 !important; }
+[data-theme="blue"] .btn-gold-glow { box-shadow: 0 0 20px rgba(59,130,246,0.5) !important; }
+
+/* ── Thème Rouge ────────────────────────────────────────── */
+[data-theme="red"] {
+  --casino-gold: #ef4444;
+  --accent: #ef4444;
+  --accent-dim: rgba(239,68,68,0.15);
+  --accent-glow: rgba(239,68,68,0.4);
+}
+[data-theme="red"] ::-webkit-scrollbar-thumb:hover { background: #ef4444; }
+[data-theme="red"] .text-casino-gold { color: #ef4444 !important; }
+[data-theme="red"] .bg-casino-gold { background-color: #ef4444 !important; }
+[data-theme="red"] .border-casino-gold { border-color: #ef4444 !important; }
+[data-theme="red"] .btn-gold-glow { box-shadow: 0 0 20px rgba(239,68,68,0.5) !important; }
 
 /* ── Scrollbar ──────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
