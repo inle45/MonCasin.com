@@ -4,6 +4,7 @@ const CrashGame = require('../games/crash');
 const { RouletteGame } = require('../games/roulette');
 const { grantXp } = require('../games/xp');
 const { tryCompleteChallenge } = require('../routes/challenge');
+const { getPlayerTitle } = require('../utils/playerTitle');
 
 function initSocket(io) {
   io.use(async (socket, next) => {
@@ -16,13 +17,13 @@ function initSocket(io) {
         where: { id: decoded.userId },
         select: {
           id: true, pseudo: true, avatar: true, balance: true,
-          grade: true, avatarBorder: true, pseudoColor: true,
+          grade: true, avatarBorder: true, pseudoColor: true, level: true,
         },
       });
 
       if (!user) return next(new Error('Utilisateur introuvable'));
 
-      socket.user = user;
+      socket.user = { ...user, title: getPlayerTitle(user.level) };
       next();
     } catch {
       next(new Error('Token invalide'));
@@ -103,8 +104,14 @@ function initSocket(io) {
 
       const freshUser = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { pseudo: true, avatar: true, grade: true, avatarBorder: true, pseudoColor: true },
+        select: { pseudo: true, avatar: true, grade: true, avatarBorder: true, pseudoColor: true, level: true },
       });
+
+      // Extraire les mentions @pseudo
+      const mentionMatches = [...sanitized.matchAll(/@(\w+)/g)].map(m => m[1]);
+      const mentions = mentionMatches.length > 0
+        ? (await prisma.user.findMany({ where: { pseudo: { in: mentionMatches } }, select: { id: true, pseudo: true } })).map(u => u.pseudo)
+        : [];
 
       const chatMsg = {
         id: message.id,
@@ -113,7 +120,9 @@ function initSocket(io) {
         avatar: freshUser.avatar,
         grade: freshUser.grade,
         pseudoColor: freshUser.pseudoColor,
+        title: getPlayerTitle(freshUser.level),
         content: sanitized,
+        mentions,
         createdAt: message.createdAt,
       };
 
@@ -121,6 +130,19 @@ function initSocket(io) {
       if (chatHistory.length > 100) chatHistory.shift();
 
       io.to('lobby').emit('chat:message', chatMsg);
+
+      // Notifier les joueurs mentionnés (s'ils sont connectés)
+      for (const mentionedPseudo of mentions) {
+        if (mentionedPseudo === user.pseudo) continue;
+        const targetSocket = [...io.sockets.sockets.values()].find(s => s.user?.pseudo === mentionedPseudo);
+        if (targetSocket) {
+          targetSocket.emit('mention:received', {
+            from: user.pseudo,
+            content: sanitized,
+            messageId: message.id,
+          });
+        }
+      }
     });
 
     // ─── CRASH ──────────────────────────────────────────────

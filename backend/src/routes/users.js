@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const prisma = require('../config/database');
 const { authenticate } = require('../middleware/auth');
+const { getPlayerTitle } = require('../utils/playerTitle');
 
 const router = express.Router();
 
@@ -30,45 +31,51 @@ const upload = multer({
 
 router.get('/public/:pseudo', async (req, res) => {
   try {
-    const [user, betStats, wonStats, gameGroups] = await Promise.all([
+    const [user, betStats, wonStats, gameGroups, recentBigWins, recentAchievements] = await Promise.all([
       prisma.user.findUnique({
         where: { pseudo: req.params.pseudo },
-        select: {
-          id: true,
-          pseudo: true,
-          avatar: true,
-          grade: true,
-          level: true,
-          xp: true,
-          streak: true,
-          createdAt: true,
-        },
+        select: { id: true, pseudo: true, avatar: true, grade: true, level: true, xp: true, streak: true, createdAt: true },
       }),
-      prisma.bet.aggregate({
+      prisma.bet.aggregate({ where: { user: { pseudo: req.params.pseudo } }, _count: { id: true } }),
+      prisma.bet.aggregate({ where: { user: { pseudo: req.params.pseudo }, won: true }, _count: { id: true }, _max: { result: true, multiplier: true } }),
+      prisma.bet.groupBy({ by: ['game'], where: { user: { pseudo: req.params.pseudo } }, _count: { id: true }, orderBy: { _count: { id: 'desc' } }, take: 1 }),
+      prisma.bet.findMany({
+        where: { user: { pseudo: req.params.pseudo }, won: true, result: { gte: 500 } },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+        select: { game: true, result: true, multiplier: true, createdAt: true },
+      }),
+      prisma.userAchievement.findMany({
         where: { user: { pseudo: req.params.pseudo } },
-        _count: { id: true },
-      }),
-      prisma.bet.aggregate({
-        where: { user: { pseudo: req.params.pseudo }, won: true },
-        _count: { id: true },
-        _max: { result: true, multiplier: true },
-      }),
-      prisma.bet.groupBy({
-        by: ['game'],
-        where: { user: { pseudo: req.params.pseudo } },
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-        take: 1,
+        orderBy: { unlockedAt: 'desc' },
+        take: 3,
+        include: { achievement: { select: { name: true, icon: true } } },
       }),
     ]);
 
     if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+
+    const activity = [
+      ...recentAchievements.map(ua => ({
+        type: 'achievement',
+        icon: ua.achievement.icon,
+        label: `Succès : ${ua.achievement.name}`,
+        date: ua.unlockedAt,
+      })),
+      ...recentBigWins.map(b => ({
+        type: 'win',
+        icon: b.multiplier >= 10 ? '🚀' : '💰',
+        label: `Gros gain de ${Math.round(b.result).toLocaleString('fr-FR')} F€ (×${b.multiplier > 0 ? b.multiplier.toFixed(2) : '?'}) au ${b.game}`,
+        date: b.createdAt,
+      })),
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
 
     res.json({
       pseudo: user.pseudo,
       avatar: user.avatar,
       grade: user.grade,
       level: user.level,
+      title: getPlayerTitle(user.level),
       xp: user.xp,
       streak: user.streak,
       createdAt: user.createdAt,
@@ -79,6 +86,7 @@ router.get('/public/:pseudo', async (req, res) => {
         bestMultiplier: wonStats._max.multiplier ?? 0,
         favoriteGame: gameGroups[0]?.game ?? null,
       },
+      activity,
     });
   } catch (err) {
     console.error('Erreur public profile:', err);

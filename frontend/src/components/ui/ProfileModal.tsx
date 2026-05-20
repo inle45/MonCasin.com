@@ -12,11 +12,19 @@ const GRADE_ICONS: Record<string, string> = {
   DIAMOND: '💎',
 };
 
+interface ActivityItem {
+  type: 'achievement' | 'win';
+  icon: string;
+  label: string;
+  date: string;
+}
+
 interface PublicProfile {
   pseudo: string;
   avatar: string;
   grade: string;
   level: number;
+  title?: string;
   xp: number;
   streak: number;
   createdAt: string;
@@ -27,6 +35,7 @@ interface PublicProfile {
     bestMultiplier: number;
     favoriteGame: string;
   };
+  activity?: ActivityItem[];
 }
 
 export default function ProfileModal({
@@ -120,7 +129,10 @@ export default function ProfileModal({
                 )}
                 <span className="text-white font-bold text-lg">{profile.pseudo}</span>
               </div>
-              <div className="flex items-center gap-2">
+              {profile.title && (
+                <span className="text-xs text-casino-gold/70 italic">{profile.title}</span>
+              )}
+              <div className="flex items-center gap-2 flex-wrap justify-center">
                 {profile.grade !== 'NONE' && (
                   <span className="text-xs bg-casino-gold/20 text-casino-gold border border-casino-gold/30 px-2 py-0.5 rounded-full">
                     {profile.grade}
@@ -182,8 +194,25 @@ export default function ProfileModal({
               </div>
             </div>
 
+            {/* Activité récente */}
+            {profile.activity && profile.activity.length > 0 && (
+              <div className="px-5 pb-2">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">⚡ Activité récente</div>
+                <div className="flex flex-col gap-1.5">
+                  {profile.activity.map((a, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs rounded-lg px-3 py-2"
+                      style={{ background: a.type === 'achievement' ? 'rgba(245,158,11,0.08)' : 'rgba(34,197,94,0.08)', border: `1px solid ${a.type === 'achievement' ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.15)'}` }}>
+                      <span className="text-base flex-shrink-0">{a.icon}</span>
+                      <span className="text-gray-300 flex-1 leading-tight">{a.label}</span>
+                      <span className="text-gray-600 flex-shrink-0">{new Date(a.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Duel button */}
-            <div className="px-5 pb-5">
+            <div className="px-5 pb-5 pt-2">
               <button
                 onClick={() => {
                   window.location.href = `/duel?target=${encodeURIComponent(pseudo)}`;

@@ -20,7 +20,9 @@ export interface ChatMessage {
   avatar?: string;
   grade: string;
   pseudoColor?: string;
+  title?: string;
   content: string;
+  mentions?: string[];
   createdAt: string;
 }
 
