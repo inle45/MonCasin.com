@@ -180,9 +180,9 @@ export default function LotteryPage() {
                     style={{ background: 'rgba(0,0,0,0.3)' }}
                   >
                     <img
-                      src={p.avatar || '/avatars/default-1.png'}
+                      src={p.avatar || '/avatars/default-1.svg'}
                       className="w-5 h-5 rounded-full"
-                      onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.png'; }}
+                      onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.svg'; }}
                     />
                     <span className="text-xs font-medium" style={{ color: GRADE_COLORS[p.grade] || '#9ca3af' }}>
                       {p.pseudo}

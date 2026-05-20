@@ -116,11 +116,11 @@ export default function ProfileModal({
             {/* Header */}
             <div className="flex flex-col items-center gap-2 p-6 pb-4 bg-gradient-to-b from-casino-darker to-casino-dark">
               <img
-                src={profile.avatar || '/avatars/default-1.png'}
+                src={profile.avatar || '/avatars/default-1.svg'}
                 alt={profile.pseudo}
                 className="w-20 h-20 rounded-full border-2 border-casino-gold object-cover"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/avatars/default-1.png';
+                  (e.target as HTMLImageElement).src = '/avatars/default-1.svg';
                 }}
               />
               <div className="flex items-center gap-2">

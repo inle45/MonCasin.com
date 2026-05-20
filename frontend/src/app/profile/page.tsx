@@ -111,10 +111,10 @@ export default function ProfilePage() {
                 !user.avatarBorder && 'border-4 border-casino-gold',
               )}>
                 <img
-                  src={user.avatar || '/avatars/default-1.png'}
+                  src={user.avatar || '/avatars/default-1.svg'}
                   alt={user.pseudo}
                   className="w-full h-full object-cover"
-                  onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.png'; }}
+                  onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.svg'; }}
                 />
               </div>
               <button

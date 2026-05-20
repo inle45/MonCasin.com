@@ -126,7 +126,7 @@ export default function ShopPage() {
                   <div className="flex justify-center">
                     {item.type === 'AVATAR_BORDER' ? (
                       <div className={clsx('w-16 h-16 rounded-full overflow-hidden', BORDER_PREVIEWS[item.value])}>
-                        <img src="/avatars/default-1.png" alt="preview" className="w-full h-full object-cover" />
+                        <img src="/avatars/default-1.svg" alt="preview" className="w-full h-full object-cover" />
                       </div>
                     ) : item.type === 'PSEUDO_COLOR' ? (
                       <div

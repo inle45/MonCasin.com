@@ -109,9 +109,9 @@ export default function RacePage() {
               >
                 <span className="text-xl w-7 text-center">{i < 3 ? RANK_ICONS[i] : `#${entry.rank}`}</span>
                 <img
-                  src={entry.avatar || '/avatars/default-1.png'}
+                  src={entry.avatar || '/avatars/default-1.svg'}
                   className="w-8 h-8 rounded-full"
-                  onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.png'; }}
+                  onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.svg'; }}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-sm truncate" style={{ color: GRADE_COLORS[entry.grade] }}>{entry.pseudo}</div>

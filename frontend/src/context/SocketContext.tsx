@@ -24,15 +24,18 @@ export interface HappyHourStatus {
   multiplier?: number;
 }
 
+import { ChatMessage } from '@/types';
+
 interface SocketContextType {
   socket: Socket | null;
   connected: boolean;
   jackpot: number;
   liveEvents: LiveEvent[];
   happyHour: HappyHourStatus;
+  chatHistory: ChatMessage[];
 }
 
-const SocketContext = createContext<SocketContextType>({ socket: null, connected: false, jackpot: 0, liveEvents: [], happyHour: { active: false } });
+const SocketContext = createContext<SocketContextType>({ socket: null, connected: false, jackpot: 0, liveEvents: [], happyHour: { active: false }, chatHistory: [] });
 
 export function SocketProvider({ children }: { children: ReactNode }) {
   const { token, updateUser } = useAuth();
@@ -41,6 +44,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const [jackpot, setJackpot] = useState(0);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
   const [happyHour, setHappyHour] = useState<HappyHourStatus>({ active: false });
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
     if (!token) {
@@ -54,6 +58,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     s.on('connect', () => setConnected(true));
     s.on('disconnect', () => setConnected(false));
+
+    s.on('init', (data) => {
+      if (data.chatHistory) setChatHistory(data.chatHistory);
+    });
 
     s.on('slots:jackpot', (data) => setJackpot(data.jackpot ?? 0));
 
@@ -208,7 +216,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   }, [token]);
 
   return (
-    <SocketContext.Provider value={{ socket, connected, jackpot, liveEvents, happyHour }}>
+    <SocketContext.Provider value={{ socket, connected, jackpot, liveEvents, happyHour, chatHistory }}>
       {children}
     </SocketContext.Provider>
   );

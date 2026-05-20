@@ -41,10 +41,10 @@ export default function Leaderboard({ initial = [] }: { initial?: LeaderboardUse
               {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
             </span>
             <img
-              src={u.avatar || '/avatars/default-1.png'}
+              src={u.avatar || '/avatars/default-1.svg'}
               alt={u.pseudo}
               className="w-6 h-6 rounded-full"
-              onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.png'; }}
+              onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.svg'; }}
             />
             <span className="text-sm text-white flex-1 truncate">{u.pseudo}</span>
             <span className="text-xs text-casino-gold font-medium">{formatBalance(u.balance)}</span>

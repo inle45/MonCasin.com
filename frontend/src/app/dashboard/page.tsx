@@ -8,7 +8,7 @@ import { useSocket } from '@/context/SocketContext';
 import Navbar from '@/components/layout/Navbar';
 import ChatPanel from '@/components/chat/ChatPanel';
 import Leaderboard from '@/components/leaderboard/Leaderboard';
-import api, { formatBalance } from '@/lib/api';
+import api, { formatBalance, getAvatarUrl } from '@/lib/api';
 import { Zap, ShoppingBag } from 'lucide-react';
 
 const GAMES = [
@@ -192,10 +192,10 @@ export default function DashboardPage() {
           <div className="casino-card p-6 bg-gradient-to-r from-casino-gold/10 to-transparent border-casino-gold/20">
             <div className="flex items-center gap-4">
               <img
-                src={user.avatar || '/avatars/default-1.png'}
+                src={getAvatarUrl(user.avatar)}
                 alt={user.pseudo}
                 className="w-16 h-16 rounded-full border-2 border-casino-gold"
-                onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.png'; }}
+                onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.svg'; }}
               />
               <div>
                 <h1 className="text-2xl font-bold text-white">

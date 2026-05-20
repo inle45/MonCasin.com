@@ -8,6 +8,7 @@ import { Send, Bell } from 'lucide-react';
 import { clsx } from 'clsx';
 import ProfileModal from '@/components/ui/ProfileModal';
 import toast from 'react-hot-toast';
+import { getAvatarUrl } from '@/lib/api';
 
 const GRADE_BADGES: Record<string, string> = {
   SILVER: '🥈',
@@ -38,9 +39,16 @@ function renderContent(content: string, myPseudo: string | undefined, mentions: 
 }
 
 export default function ChatPanel({ initialMessages = [] }: { initialMessages?: ChatMessage[] }) {
-  const { socket } = useSocket();
+  const { socket, chatHistory } = useSocket();
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+
+  // Charger l'historique dès qu'il arrive du socket
+  useEffect(() => {
+    if (chatHistory.length > 0) {
+      setMessages(chatHistory);
+    }
+  }, [chatHistory]);
   const [input, setInput] = useState('');
   const [profilePseudo, setProfilePseudo] = useState<string | null>(null);
   const [mentionCount, setMentionCount] = useState(0);
@@ -127,10 +135,10 @@ export default function ChatPanel({ initialMessages = [] }: { initialMessages?: 
               )}
             >
               <img
-                src={msg.avatar || '/avatars/default-1.png'}
+                src={getAvatarUrl(msg.avatar)}
                 alt={msg.pseudo}
                 className="w-6 h-6 rounded-full flex-shrink-0 mt-0.5 cursor-pointer"
-                onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.png'; }}
+                onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.svg'; }}
                 onClick={() => setProfilePseudo(msg.pseudo)}
               />
               <div className="min-w-0 flex-1">

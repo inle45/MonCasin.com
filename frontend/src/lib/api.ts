@@ -46,3 +46,18 @@ export const formatBalance = (amount: number): string => {
 };
 
 export const formatMultiplier = (m: number): string => `${m.toFixed(2)}x`;
+
+// Convertit les URLs d'avatar pour qu'elles soient toujours accessibles
+export const getAvatarUrl = (avatar?: string | null): string => {
+  if (!avatar) return '/avatars/default-1.svg';
+  // Anciens avatars backend .png → frontend .svg
+  if (avatar.match(/\/api\/avatars\/default-(\d)\.png/)) {
+    const idx = avatar.match(/default-(\d)/)?.[1] || '1';
+    return `/avatars/default-${idx}.svg`;
+  }
+  // Avatars uploadés par l'utilisateur → préfixer avec l'URL backend
+  if (avatar.startsWith('/api/uploads/')) {
+    return `${API_URL}${avatar}`;
+  }
+  return avatar;
+};

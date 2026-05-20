@@ -27,6 +27,8 @@ export default function CrashPage() {
   const [multiplier, setMultiplier] = useState(1.0);
   const [crashPoint, setCrashPoint] = useState<number | null>(null);
   const [waitTime, setWaitTime] = useState(8);
+  const [countdown, setCountdown] = useState(8);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [history, setHistory] = useState<number[]>([]);
   const [bets, setBets] = useState<CrashBet[]>([]);
   const [shaking, setShaking] = useState(false);
@@ -189,13 +191,27 @@ export default function CrashPage() {
       setHasBet(false);
       setMyCashedOut(false);
       setMyBetAmount(0);
-      setWaitTime(data.waitTime || 8);
+      const wt = data.waitTime || 8;
+      setWaitTime(wt);
+      setCountdown(wt);
       setHistory(data.history || []);
       setCrashed(false);
       pointsRef.current = [];
+
+      // Décompte réel seconde par seconde
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      let remaining = wt;
+      countdownRef.current = setInterval(() => {
+        remaining -= 1;
+        setCountdown(Math.max(0, remaining));
+        if (remaining <= 0) {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+        }
+      }, 1000);
     });
 
     socket.on('crash:started', () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
       setGameState('running');
       setCrashed(false);
       pointsRef.current = [];
@@ -273,6 +289,7 @@ export default function CrashPage() {
       socket.off('crash:cashout_confirmed');
       socket.off('error');
       socket.off('crash:reaction');
+      if (countdownRef.current) clearInterval(countdownRef.current);
     };
   }, [socket, hasBet, myCashedOut, myBetAmount, drawCanvas, updateUser, triggerCrashEffect]);
 
@@ -333,9 +350,33 @@ export default function CrashPage() {
                 {/* Overlay multiplicateur */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   {gameState === 'waiting' ? (
-                    <div className="text-center">
-                      <div className="text-5xl font-black text-white animate-pulse">{waitTime}s</div>
-                      <div className="text-gray-400 mt-1 text-sm">Prochaine partie dans...</div>
+                    <div className="text-center flex flex-col items-center gap-3">
+                      {/* Anneau de décompte SVG */}
+                      <div className="relative w-28 h-28">
+                        <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8"/>
+                          <circle
+                            cx="50" cy="50" r="44"
+                            fill="none"
+                            stroke="#f59e0b"
+                            strokeWidth="8"
+                            strokeLinecap="round"
+                            strokeDasharray={`${2 * Math.PI * 44}`}
+                            strokeDashoffset={`${2 * Math.PI * 44 * (1 - countdown / waitTime)}`}
+                            style={{ transition: 'stroke-dashoffset 0.9s linear', filter: 'drop-shadow(0 0 6px #f59e0b)' }}
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <div className="text-4xl font-black text-white leading-none">{countdown}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">sec</div>
+                        </div>
+                      </div>
+                      <div className="text-gray-300 text-sm font-medium">Prochaine partie dans...</div>
+                      {hasBet && (
+                        <div className="text-casino-gold text-xs font-bold bg-casino-gold/10 px-3 py-1 rounded-full border border-casino-gold/30">
+                          ✓ Mise placée — prêt !
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center">

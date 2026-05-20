@@ -182,10 +182,10 @@ export default function TournamentPage() {
 
                 {/* Avatar */}
                 <img
-                  src={player.avatar || '/avatars/default-1.png'}
+                  src={player.avatar || '/avatars/default-1.svg'}
                   alt={player.pseudo}
                   className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-casino-border"
-                  onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.png'; }}
+                  onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.svg'; }}
                 />
 
                 {/* Pseudo + stats */}

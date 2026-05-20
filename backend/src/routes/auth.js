@@ -36,7 +36,7 @@ router.post('/register', async (req, res) => {
         email,
         pseudo,
         password: hashedPassword,
-        avatar: `/api/avatars/default-${avatarIndex}.png`,
+        avatar: `/avatars/default-${avatarIndex}.svg`,
         balance: 10000,
       },
     });

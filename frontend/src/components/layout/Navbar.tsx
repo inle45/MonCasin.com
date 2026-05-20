@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
-import { formatBalance } from '@/lib/api';
+import { formatBalance, getAvatarUrl } from '@/lib/api';
 import { sfx } from '@/lib/sfx';
 import { LogOut, ShoppingBag, Gift, Package, Trophy, ClipboardList, Volume2, VolumeX, BarChart2, Star, Ticket, RotateCcw, Flag, ChevronDown, Gamepad2, Menu, Swords, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -204,10 +204,10 @@ export default function Navbar() {
           <Link href="/profile" className="relative flex-shrink-0">
             <div className="w-8 h-8 rounded-full overflow-hidden border border-casino-border">
               <img
-                src={user.avatar || '/avatars/default-1.png'}
+                src={getAvatarUrl(user.avatar)}
                 alt={user.pseudo}
                 className="w-full h-full object-cover"
-                onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.png'; }}
+                onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.svg'; }}
               />
             </div>
             {user.grade !== 'NONE' && (
