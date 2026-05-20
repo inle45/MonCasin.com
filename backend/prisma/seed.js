@@ -130,6 +130,13 @@ const achievements = [
   },
 ];
 
+const tableEffects = [
+  { id: 'table-neon-green', name: '🟢 Table Néon Vert', description: 'Fond de table vert néon brillant sur tous les jeux', type: 'TABLE_THEME', value: 'neon-green', price: 8000 },
+  { id: 'table-neon-red',   name: '🔴 Table Néon Rouge', description: 'Fond de table rouge néon sur tous les jeux', type: 'TABLE_THEME', value: 'neon-red',   price: 8000 },
+  { id: 'table-galaxy',     name: '🌌 Table Galaxie',   description: 'Fond de table avec effet galaxie animé', type: 'TABLE_THEME', value: 'galaxy',     price: 20000 },
+  { id: 'table-gold',       name: '✨ Table Dorée',     description: 'Fond de table doré premium', type: 'TABLE_THEME', value: 'gold-table', price: 15000 },
+];
+
 async function main() {
   console.log('🎰 Démarrage du seed de la base de données...');
 
@@ -172,12 +179,18 @@ async function main() {
     const item = await prisma.shopItem.upsert({
       where: { id: itemData.value + '-' + itemData.type },
       update: {},
-      create: {
-        id: itemData.value + '-' + itemData.type,
-        ...itemData,
-      },
+      create: { id: itemData.value + '-' + itemData.type, ...itemData },
     });
     console.log(`🛒 Article de boutique créé : ${item.name} - ${item.price} F€`);
+  }
+
+  for (const itemData of tableEffects) {
+    await prisma.shopItem.upsert({
+      where: { id: itemData.id },
+      update: {},
+      create: itemData,
+    });
+    console.log(`🎨 Effet de table créé : ${itemData.name}`);
   }
 
   for (const ach of achievements) {

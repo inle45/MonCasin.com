@@ -103,6 +103,36 @@ const GAMES = [
     badge: 'SOLO',
     badgeColor: 'text-indigo-400 bg-indigo-400/10',
   },
+  {
+    href: '/games/wheel',
+    title: 'Roue de la Richesse',
+    icon: '🎡',
+    description: 'Fais tourner la grande roue ! 12 segments, jusqu\'à ×50.',
+    color: 'from-yellow-500/20 to-yellow-900/20',
+    border: 'border-yellow-500/30',
+    badge: 'SOLO',
+    badgeColor: 'text-yellow-400 bg-yellow-400/10',
+  },
+  {
+    href: '/games/baccarat',
+    title: 'Baccarat',
+    icon: '🎴',
+    description: 'Joueur vs Banquier avec les règles officielles. Mise sur la victoire ou l\'égalité.',
+    color: 'from-emerald-500/20 to-emerald-900/20',
+    border: 'border-emerald-500/30',
+    badge: 'SOLO',
+    badgeColor: 'text-emerald-400 bg-emerald-400/10',
+  },
+  {
+    href: '/games/horses',
+    title: 'Courses Hippiques',
+    icon: '🏇',
+    description: '6 chevaux avec cotes dynamiques. Misez et regardez la course en direct !',
+    color: 'from-lime-500/20 to-lime-900/20',
+    border: 'border-lime-500/30',
+    badge: 'SOLO',
+    badgeColor: 'text-lime-400 bg-lime-400/10',
+  },
 ];
 
 function FortuneGraph() {

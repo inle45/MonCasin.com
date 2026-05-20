@@ -8,6 +8,8 @@ import KeepAlive from '@/components/ui/KeepAlive';
 import LiveFeed from '@/components/ui/LiveFeed';
 import HappyHourBanner from '@/components/ui/HappyHourBanner';
 import FloatingChat from '@/components/ui/FloatingChat';
+import WeatherBanner from '@/components/ui/WeatherBanner';
+import MusicPlayer from '@/components/ui/MusicPlayer';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -47,7 +49,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <KeepAlive />
             <HappyHourBanner />
             <LiveFeed />
+            <WeatherBanner />
             <FloatingChat />
+            <MusicPlayer />
             {children}
             <Toaster
               position="top-right"

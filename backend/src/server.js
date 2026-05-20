@@ -28,8 +28,12 @@ const scratchRoutes = require('./routes/scratch');
 const { router: battlePassRoutes } = require('./routes/battlepass');
 const duelRoutes = require('./routes/duel');
 const { getHappyHourStatus } = require('./utils/happyHour');
+const { getWeather, rotateWeather } = require('./utils/weather');
 const { initSocket } = require('./socket/index');
 const { setIo } = require('./socket/ioInstance');
+const wheelRoutes = require('./routes/wheel');
+const baccaratRoutes = require('./routes/baccarat');
+const horsesRoutes = require('./routes/horses');
 
 const app = express();
 const server = http.createServer(app);
@@ -75,6 +79,10 @@ app.use('/api/games/limbo', limboRoutes);
 app.use('/api/games/plinko', plinkoRoutes);
 app.use('/api/games/blackjack', blackjackRoutes);
 app.get('/api/happyhour', (req, res) => res.json(getHappyHourStatus()));
+app.get('/api/weather', (req, res) => res.json(getWeather()));
+app.use('/api/games/wheel', wheelRoutes);
+app.use('/api/games/baccarat', baccaratRoutes);
+app.use('/api/games/horses', horsesRoutes);
 app.use('/api/rakeback', rakebackRoutes);
 app.use('/api/race', raceRoutes);
 app.use('/api/challenge', challengeRoutes);
@@ -125,6 +133,14 @@ server.listen(PORT, () => {
     }
   }, 60 * 1000);
   io.emit('happyhour:update', getHappyHourStatus());
+
+  // Météo des gains — change toutes les heures
+  setInterval(() => {
+    const w = rotateWeather();
+    io.emit('weather:update', w);
+    console.log(`🌤️ Nouvelle météo : ${w.emoji} ${w.name}`);
+  }, 60 * 60 * 1000);
+  io.emit('weather:update', getWeather());
 });
 
 module.exports = { app, server, io };
