@@ -10,622 +10,872 @@ import BigWinOverlay from '@/components/games/BigWinOverlay';
 import WheelOfFortune from '@/components/games/WheelOfFortune';
 import ChestGame from '@/components/games/ChestGame';
 
-// ── Symboles ──────────────────────────────────────────────────────────────────
-const SYMBOLES: Record<string, { emoji: string; couleur: string }> = {
-  TEN:     { emoji: '🔟', couleur: '#6b7280' },
-  JACK:    { emoji: '🎴', couleur: '#6b7280' },
-  QUEEN:   { emoji: '♛',  couleur: '#8b5cf6' },
-  KING:    { emoji: '♚',  couleur: '#3b82f6' },
-  ACE:     { emoji: '🅰️', couleur: '#f97316' },
-  CROWN:   { emoji: '👑', couleur: '#f59e0b' },
-  DIAMOND: { emoji: '💎', couleur: '#06b6d4' },
-  WILD:    { emoji: '🌟', couleur: '#fbbf24' },
-  SCATTER: { emoji: '⭐', couleur: '#fbbf24' },
+// ── Symbol definitions ───────────────────────────────────────────────────────
+const SYMS: Record<string, { emoji: string; label: string; bg: string; glow: string; tier: number }> = {
+  TEN:     { emoji: '🔟', label: '10',    bg: 'linear-gradient(160deg,#1e293b,#0f172a)', glow: '#64748b', tier: 1 },
+  JACK:    { emoji: '🃏', label: 'J',     bg: 'linear-gradient(160deg,#14532d,#052e16)', glow: '#22c55e', tier: 1 },
+  QUEEN:   { emoji: '♛',  label: 'Q',     bg: 'linear-gradient(160deg,#4c1d95,#2e1065)', glow: '#8b5cf6', tier: 2 },
+  KING:    { emoji: '♚',  label: 'K',     bg: 'linear-gradient(160deg,#1e3a8a,#1e1b4b)', glow: '#3b82f6', tier: 2 },
+  ACE:     { emoji: '🅰️', label: 'A',     bg: 'linear-gradient(160deg,#7c2d12,#431407)', glow: '#f97316', tier: 3 },
+  CROWN:   { emoji: '👑', label: 'Crown', bg: 'linear-gradient(160deg,#854d0e,#422006)', glow: '#f59e0b', tier: 3 },
+  DIAMOND: { emoji: '💎', label: 'Gem',   bg: 'linear-gradient(160deg,#0c4a6e,#082f49)', glow: '#06b6d4', tier: 4 },
+  WILD:    { emoji: '🌟', label: 'WILD',  bg: 'linear-gradient(160deg,#78350f,#451a03)', glow: '#fbbf24', tier: 5 },
+  SCATTER: { emoji: '⭐', label: 'SCAT',  bg: 'linear-gradient(160deg,#701a75,#3b0764)', glow: '#e879f9', tier: 5 },
 };
+const ALL_SYMS = Object.keys(SYMS);
 
-const MISES_PRESETS = [1, 5, 10, 25, 50, 100, 250, 500];
+const MISES = [1, 5, 10, 25, 50, 100, 250, 500];
 
-const LIGNES_DE_PAIEMENT = [
+// 20 paylines (each is [row for col0, row for col1, ..., row for col4])
+const PAYLINES = [
   [1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],
   [0,0,1,2,2],[2,2,1,0,0],[1,0,0,0,1],[1,2,2,2,1],[0,1,0,1,0],
   [2,1,2,1,2],[1,0,1,0,1],[1,2,1,2,1],[0,0,0,1,2],[2,2,2,1,0],
   [0,1,1,1,2],[2,1,1,1,0],[1,1,0,1,1],[1,1,2,1,1],[0,2,1,0,2],
 ];
+const LINE_COLORS = [
+  '#ef4444','#3b82f6','#22c55e','#f59e0b','#8b5cf6',
+  '#06b6d4','#ec4899','#10b981','#f97316','#a855f7',
+  '#14b8a6','#eab308','#94a3b8','#84cc16','#6366f1',
+  '#e11d48','#0ea5e9','#16a34a','#b45309','#7c3aed',
+];
 
-function grilleVide(): string[][] {
+// SVG payline grid coords (% of grid area, 5 cols × 3 rows with gap-1.5)
+const COL_X = [9.5, 30, 50, 70, 90.5];
+const ROW_Y = [16, 50, 84];
+
+function emptyGrid(): string[][] {
   return Array.from({ length: 5 }, () => ['TEN', 'TEN', 'TEN']);
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface LigneGagnante {
-  indexLigne: number;
-  symbole: string;
-  count: number;
-  multiplicateur: number;
-}
-
+// ── Types ────────────────────────────────────────────────────────────────────
+interface WinLine { indexLigne: number; symbole: string; count: number; multiplicateur: number; }
 interface SpinResult {
-  grille: string[][];
-  gainTotal: number;
-  lignesGagnantes: LigneGagnante[];
-  multiplicateurTotal: number;
-  scatters: number;
+  grille: string[][]; gainTotal: number; lignesGagnantes: WinLine[];
+  multiplicateurTotal: number; scatters: number;
   bonus: { type: 'FREE_SPINS' | 'WHEEL_OF_FORTUNE' | 'CHEST_GAME'; freespins?: number } | null;
-  jackpotWin: boolean;
-  gagne: boolean;
-  bigWin: boolean;
-  estFreeSpin: boolean;
-  spinsRestants?: number;
-  multiplicateurFreeSpin?: number;
-  gainTotalFreeSpins?: number;
-  freeSpinsTermines?: boolean;
-  newBalance: number;
-  jackpot: number;
+  jackpotWin: boolean; gagne: boolean; bigWin: boolean; estFreeSpin: boolean;
+  spinsRestants?: number; multiplicateurFreeSpin?: number; gainTotalFreeSpins?: number;
+  freeSpinsTermines?: boolean; newBalance: number; jackpot: number;
 }
-
-interface WheelResult {
-  multiplicateur: number;
-  gain: number;
-  newBalance: number;
-}
-
+interface WheelResult { multiplicateur: number; gain: number; newBalance: number; }
 interface ChestResult {
-  estAlarme: boolean;
-  valeur: number;
-  item: string | null;
-  indexCoffre: number;
-  gainTotal: number;
-  termine: boolean;
+  estAlarme: boolean; valeur: number; item: string | null; indexCoffre: number;
+  gainTotal: number; termine: boolean;
   coffres: Array<{ estAlarme: boolean; valeur: number; item: string | null; revele: boolean }>;
-  newBalance: number;
-  itemCree?: { type: string } | null;
+  newBalance: number; itemCree?: { type: string } | null;
 }
 
-// ── Cellule de rouleau ────────────────────────────────────────────────────────
-function CelluleRouleau({
-  sym,
-  isGagnant,
-  isScatterTease,
-}: {
-  sym: string;
-  isGagnant: boolean;
-  isScatterTease: boolean;
+// ── Win tier ─────────────────────────────────────────────────────────────────
+function winTier(m: number) {
+  if (m <= 0)  return null;
+  if (m < 3)   return { label: 'MINI WIN',  color: '#64748b' };
+  if (m < 8)   return { label: 'SMALL WIN', color: '#3b82f6' };
+  if (m < 20)  return { label: 'BIG WIN',   color: '#8b5cf6' };
+  if (m < 50)  return { label: 'MEGA WIN',  color: '#f59e0b' };
+  return             { label: 'ULTRA WIN', color: '#ef4444' };
+}
+
+// ── Symbol Cell ──────────────────────────────────────────────────────────────
+function SymCell({ sym, winning, spinning, lineColor }: {
+  sym: string; winning: boolean; spinning: boolean; lineColor?: string;
 }) {
-  const def = SYMBOLES[sym] ?? { emoji: sym, couleur: '#6b7280' };
+  const d = SYMS[sym] ?? SYMS.TEN;
+  const glow = lineColor ?? d.glow;
   return (
     <motion.div
-      animate={isGagnant ? { scale: [1, 1.12, 1] } : {}}
-      transition={isGagnant ? { duration: 0.65, repeat: Infinity } : {}}
-      className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg flex items-center justify-center text-2xl sm:text-3xl relative overflow-hidden"
+      animate={winning ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+      transition={winning ? { duration: 0.6, repeat: Infinity } : {}}
+      className="w-[62px] h-[62px] sm:w-[76px] sm:h-[76px] rounded-xl flex flex-col items-center justify-center relative overflow-hidden select-none"
       style={{
-        background: isGagnant
-          ? `radial-gradient(ellipse at center, ${def.couleur}44 0%, #1e1b4b 70%)`
-          : 'rgba(30,27,75,0.7)',
-        border: isGagnant
-          ? `2px solid ${def.couleur}`
-          : isScatterTease
-          ? '2px solid #fbbf24'
-          : '1px solid rgba(245,158,11,0.18)',
-        boxShadow: isGagnant
-          ? `0 0 18px ${def.couleur}99`
-          : isScatterTease
-          ? '0 0 14px rgba(251,191,36,0.7)'
-          : 'none',
+        background: d.bg,
+        border: winning ? `2px solid ${glow}` : '1px solid rgba(255,255,255,0.09)',
+        boxShadow: winning
+          ? `0 0 22px ${glow}99, inset 0 0 16px ${glow}22`
+          : 'inset 0 1px 0 rgba(255,255,255,0.08)',
       }}
     >
-      {def.emoji}
-      {isGagnant && (
+      {/* Top specular */}
+      <div className="absolute top-0 left-0 right-0 h-1/3 rounded-t-xl"
+        style={{ background: 'linear-gradient(180deg,rgba(255,255,255,0.18),transparent)', pointerEvents: 'none' }} />
+
+      <span className="text-[32px] sm:text-[38px] leading-none z-10"
+        style={{ filter: winning ? `drop-shadow(0 0 8px ${glow})` : 'none' }}>
+        {d.emoji}
+      </span>
+
+      <span className="text-[8px] font-black tracking-widest mt-0.5 z-10"
+        style={{ color: winning ? glow : 'rgba(255,255,255,0.35)' }}>
+        {d.label}
+      </span>
+
+      {winning && (
         <motion.div
-          className="absolute inset-0 rounded-lg"
-          animate={{ opacity: [0, 0.35, 0] }}
-          transition={{ duration: 0.65, repeat: Infinity }}
-          style={{ background: def.couleur, mixBlendMode: 'overlay' }}
+          className="absolute inset-0 rounded-xl pointer-events-none"
+          animate={{ opacity: [0, 0.45, 0] }}
+          transition={{ duration: 0.6, repeat: Infinity }}
+          style={{ background: glow, mixBlendMode: 'overlay' }}
         />
       )}
+
+      {/* Bottom depth shadow */}
+      <div className="absolute bottom-0 left-0 right-0 h-1/4 rounded-b-xl"
+        style={{ background: 'linear-gradient(0deg,rgba(0,0,0,0.4),transparent)', pointerEvents: 'none' }} />
     </motion.div>
   );
 }
 
-// ── Rouleau ───────────────────────────────────────────────────────────────────
-function Rouleau({
-  col,
-  reelIdx,
-  spinning,
-  stopped,
-  teasing,
-  lignesGagnantes,
-}: {
-  col: string[];
-  reelIdx: number;
-  spinning: boolean;
-  stopped: boolean;
-  teasing: boolean;
-  lignesGagnantes: LigneGagnante[];
+// ── Reel ─────────────────────────────────────────────────────────────────────
+function Reel({ symbols, reelIdx, spinning, stopped, teasing, winLines }: {
+  symbols: string[]; reelIdx: number; spinning: boolean; stopped: boolean;
+  teasing: boolean; winLines: WinLine[];
 }) {
-  const cellsGagnantes = new Set<number>();
-  lignesGagnantes.forEach(({ indexLigne }) => {
-    const ligne = LIGNES_DE_PAIEMENT[indexLigne];
-    if (ligne !== undefined) cellsGagnantes.add(ligne[reelIdx]);
-  });
+  const [disp, setDisp] = useState(symbols);
+  const ivRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+
+  useEffect(() => {
+    if (spinning && !stopped) {
+      ivRef.current = setInterval(() => {
+        setDisp([
+          ALL_SYMS[Math.random() * ALL_SYMS.length | 0],
+          ALL_SYMS[Math.random() * ALL_SYMS.length | 0],
+          ALL_SYMS[Math.random() * ALL_SYMS.length | 0],
+        ]);
+      }, 75);
+    } else {
+      clearInterval(ivRef.current);
+      setDisp(symbols);
+    }
+    return () => clearInterval(ivRef.current);
+  }, [spinning, stopped, symbols]);
+
+  // Which rows are winning on this reel, and which line color
+  const winMap = new Map<number, string>();
+  if (!spinning || stopped) {
+    winLines.forEach((l, li) => {
+      const row = PAYLINES[l.indexLigne]?.[reelIdx];
+      if (row !== undefined && !winMap.has(row)) winMap.set(row, LINE_COLORS[li % LINE_COLORS.length]);
+    });
+  }
 
   const isSpinning = spinning && !stopped;
-  const isTease = teasing && !stopped;
+  const isTease    = teasing && !stopped;
 
   return (
-    <motion.div
-      animate={isSpinning ? { y: [0, -10, 0] } : {}}
-      transition={isSpinning ? { duration: 0.11, repeat: Infinity, ease: 'linear' } : {}}
-      className="flex flex-col gap-1.5"
-      style={{
-        filter: isSpinning
-          ? 'blur(4px) brightness(1.4)'
-          : isTease
-          ? 'blur(1.5px) brightness(1.15) saturate(1.4)'
-          : 'none',
-        transition: isTease ? 'filter 0.3s' : undefined,
-      }}
-    >
-      {col.map((sym, rowIdx) => (
-        <CelluleRouleau
-          key={rowIdx}
-          sym={sym}
-          isGagnant={!spinning && cellsGagnantes.has(rowIdx)}
-          isScatterTease={isTease && sym === 'SCATTER'}
-        />
-      ))}
-    </motion.div>
+    <div className="relative">
+      {/* Reel side glows when spinning */}
+      {isSpinning && (
+        <div className="absolute inset-0 rounded-xl pointer-events-none"
+          style={{ boxShadow: 'inset 0 0 20px rgba(245,158,11,0.12)' }} />
+      )}
+      <motion.div
+        animate={isSpinning ? { y: [0, -12, 0] } : { y: 0 }}
+        transition={isSpinning
+          ? { duration: 0.09, repeat: Infinity, ease: 'linear' }
+          : { type: 'spring', stiffness: 500, damping: 14, mass: 0.4 }}
+        className="flex flex-col gap-1.5"
+        style={{
+          filter: isSpinning
+            ? 'blur(4.5px) brightness(1.5) saturate(1.4)'
+            : isTease
+            ? 'blur(2px) brightness(1.2) saturate(1.6)'
+            : 'none',
+          transition: isSpinning ? 'none' : 'filter 0.15s ease',
+        }}
+      >
+        {disp.map((sym, row) => (
+          <SymCell
+            key={row}
+            sym={sym}
+            winning={!isSpinning && winMap.has(row)}
+            spinning={isSpinning}
+            lineColor={winMap.get(row)}
+          />
+        ))}
+      </motion.div>
+    </div>
   );
 }
 
-// ── Page principale ───────────────────────────────────────────────────────────
-// Niveau de gain selon multiplicateur total
-function getWinTier(mult: number): { label: string; couleur: string } | null {
-  if (mult <= 0) return null;
-  if (mult < 5)  return { label: 'MINI WIN',  couleur: '#6b7280' };
-  if (mult < 10) return { label: 'MINOR WIN', couleur: '#3b82f6' };
-  if (mult < 20) return { label: 'MAJOR WIN', couleur: '#8b5cf6' };
-  return               { label: 'GRAND WIN', couleur: '#f59e0b' };
+// ── Payline SVG overlay ───────────────────────────────────────────────────────
+function PaylineOverlay({ lines, visible }: { lines: WinLine[]; visible: boolean }) {
+  if (!visible || lines.length === 0) return null;
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ zIndex: 20 }}
+    >
+      {lines.map((l, idx) => {
+        const pattern = PAYLINES[l.indexLigne];
+        if (!pattern) return null;
+        const color = LINE_COLORS[idx % LINE_COLORS.length];
+        const pts = pattern.map((row, col) => `${COL_X[col]},${ROW_Y[row]}`).join(' ');
+        return (
+          <g key={idx}>
+            {/* Outer glow */}
+            <polyline points={pts} fill="none" stroke={color}
+              strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.22" />
+            {/* Core line */}
+            <polyline points={pts} fill="none" stroke={color}
+              strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+            {/* Dots */}
+            {pattern.map((row, col) => (
+              <circle key={col} cx={COL_X[col]} cy={ROW_Y[row]} r="2.8"
+                fill={color} opacity="0.95" />
+            ))}
+          </g>
+        );
+      })}
+    </svg>
+  );
 }
 
+// ── Coin rain particles ───────────────────────────────────────────────────────
+function CoinRain({ active }: { active: boolean }) {
+  const [coins, setCoins] = useState<{ id: number; x: number; delay: number; dur: number }[]>([]);
+  useEffect(() => {
+    if (!active) { setCoins([]); return; }
+    setCoins(Array.from({ length: 28 }, (_, i) => ({
+      id: i, x: 3 + Math.random() * 94,
+      delay: Math.random() * 1.4, dur: 1.1 + Math.random() * 0.9,
+    })));
+    const t = setTimeout(() => setCoins([]), 3200);
+    return () => clearTimeout(t);
+  }, [active]);
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 30 }}>
+      {coins.map(c => (
+        <div key={c.id} className="absolute text-base select-none"
+          style={{ left: `${c.x}%`, top: '-5%', animation: `slot-coin ${c.dur}s ${c.delay}s ease-in both` }}>
+          🪙
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Neon strip decoration ─────────────────────────────────────────────────────
+const NEON_COLORS = ['#ef4444','#f97316','#fbbf24','#22c55e','#06b6d4','#8b5cf6','#ec4899','#ef4444'];
+function NeonStrip({ dir }: { dir: 'row' | 'col' }) {
+  return (
+    <div className={`flex ${dir === 'row' ? 'flex-row' : 'flex-col'} gap-1.5`}>
+      {NEON_COLORS.map((c, i) => (
+        <div key={i} className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+          style={{
+            background: c,
+            boxShadow: `0 0 6px ${c}, 0 0 14px ${c}80`,
+            animation: `slot-neon 1.6s ${i * 0.2}s ease-in-out infinite`,
+          }} />
+      ))}
+    </div>
+  );
+}
+
+// ── Main page ────────────────────────────────────────────────────────────────
 export default function SlotsPage() {
   const { user, updateUser } = useAuth();
   const { socket } = useSocket();
 
-  const [grille, setGrille] = useState<string[][]>(grilleVide());
-  const [mise, setMise] = useState(10);
-  const [spinning, setSpinning] = useState(false);
-  const [stoppedReels, setStoppedReels] = useState([true, true, true, true, true]);
-  const [lignesGagnantes, setLignesGagnantes] = useState<LigneGagnante[]>([]);
-  const [jackpot, setJackpot] = useState(50000);
-  const [teasing, setTeasing] = useState(false);
-  const [lastGain, setLastGain] = useState<number | null>(null);
-  const [lastMult, setLastMult] = useState(0);
-  const [autoSpin, setAutoSpin] = useState(false);
-  const autoSpinRef = useRef(false);
+  const [grid,         setGrid]         = useState<string[][]>(emptyGrid());
+  const [mise,         setMise]         = useState(10);
+  const [spinning,     setSpinning]     = useState(false);
+  const [stopped,      setStopped]      = useState([true,true,true,true,true]);
+  const [winLines,     setWinLines]     = useState<WinLine[]>([]);
+  const [jackpot,      setJackpot]      = useState(50000);
+  const [teasing,      setTeasing]      = useState(false);
+  const [lastGain,     setLastGain]     = useState<number | null>(null);
+  const [lastMult,     setLastMult]     = useState(0);
+  const [autoSpin,     setAutoSpin]     = useState(false);
+  const [showCoins,    setShowCoins]    = useState(false);
+  const autoRef = useRef(false);
 
   // Free spins
-  const [enModeFreeSpin, setEnModeFreeSpin] = useState(false);
-  const [freeSpinsRestants, setFreeSpinsRestants] = useState(0);
-  const [freeSpinMultiplicateur, setFreeSpinMultiplicateur] = useState(1);
-  const [freeSpinsGainTotal, setFreeSpinsGainTotal] = useState(0);
+  const [freeMode,     setFreeMode]     = useState(false);
+  const [freeLeft,     setFreeLeft]     = useState(0);
+  const [freeMult,     setFreeMult]     = useState(1);
+  const [freeTotal,    setFreeTotal]    = useState(0);
 
-  // Big Win overlay
-  const [bigWinVisible, setBigWinVisible] = useState(false);
-  const [bigWinMontant, setBigWinMontant] = useState(0);
-  const [bigWinMultiplicateur, setBigWinMultiplicateur] = useState(0);
+  // Big win overlay
+  const [bigVisible,   setBigVisible]   = useState(false);
+  const [bigAmount,    setBigAmount]    = useState(0);
+  const [bigMult,      setBigMult]      = useState(0);
 
-  // Roue bonus
-  const [showWheel, setShowWheel] = useState(false);
-  const [wheelResult, setWheelResult] = useState<WheelResult | null>(null);
-  const [wheelMise, setWheelMise] = useState(0);
-
-  // Coffres bonus
-  const [showChest, setShowChest] = useState(false);
-  const [chestData, setChestData] = useState<{
-    coffres: ChestResult['coffres'];
-    gainTotal: number;
-    itemsObtenus: string[];
-    mise: number;
-    termine: boolean;
+  // Bonus mini-games
+  const [showWheel,    setShowWheel]    = useState(false);
+  const [wheelRes,     setWheelRes]     = useState<WheelResult | null>(null);
+  const [wheelMise,    setWheelMise]    = useState(0);
+  const [showChest,    setShowChest]    = useState(false);
+  const [chestData,    setChestData]    = useState<{
+    coffres: ChestResult['coffres']; gainTotal: number; itemsObtenus: string[]; mise: number; termine: boolean;
   } | null>(null);
 
-  const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
 
   useEffect(() => {
     if (!socket) return;
-    const handler = ({ jackpot: j }: { jackpot: number }) => setJackpot(j);
-    socket.on('slots:jackpot', handler);
-    return () => { socket.off('slots:jackpot', handler); };
+    const h = ({ jackpot: j }: { jackpot: number }) => setJackpot(j);
+    socket.on('slots:jackpot', h);
+    return () => { socket.off('slots:jackpot', h); };
   }, [socket]);
 
   useEffect(() => {
-    api.get('/games/slots/jackpot')
-      .then(res => setJackpot(res.data.jackpot))
-      .catch(() => {});
+    api.get('/games/slots/jackpot').then(r => setJackpot(r.data.jackpot)).catch(() => {});
   }, []);
-
-  const clearTimers = () => {
-    timerRefs.current.forEach(clearTimeout);
-    timerRefs.current = [];
-  };
 
   const handleSpin = useCallback(async () => {
     if (spinning || !user) return;
-    if (!enModeFreeSpin && (user.balance ?? 0) < mise) return;
+    if (!freeMode && (user.balance ?? 0) < mise) return;
 
     setSpinning(true);
-    setStoppedReels([false, false, false, false, false]);
-    setLignesGagnantes([]);
+    setStopped([false,false,false,false,false]);
+    setWinLines([]);
     setTeasing(false);
     setLastGain(null);
     setLastMult(0);
+    setShowCoins(false);
     clearTimers();
 
     try {
       const res = await api.post('/games/slots/spin', { amount: mise });
-      const data: SpinResult = res.data;
+      const d: SpinResult = res.data;
+      updateUser({ balance: d.newBalance });
+      setJackpot(d.jackpot);
 
-      updateUser({ balance: data.newBalance });
-      setJackpot(data.jackpot);
-
-      // Détecter scatters pour tease
-      let scatterCount = 0;
+      let scatCount = 0;
       for (let r = 0; r < 5; r++)
         for (let row = 0; row < 3; row++)
-          if (data.grille[r][row] === 'SCATTER') scatterCount++;
+          if (d.grille[r][row] === 'SCATTER') scatCount++;
 
       const DELAYS = [350, 750, 1200, 1700, 2250];
-      DELAYS.forEach((delay, reelIdx) => {
+      DELAYS.forEach((delay, ri) => {
         const t = setTimeout(() => {
-          setGrille(prev =>
-            prev.map((col, i) => i === reelIdx ? data.grille[reelIdx] : col)
-          );
-          setStoppedReels(prev => {
-            const next = [...prev];
-            next[reelIdx] = true;
-            return next;
-          });
+          setGrid(prev => prev.map((col, i) => i === ri ? d.grille[ri] : col));
+          setStopped(prev => { const n = [...prev]; n[ri] = true; return n; });
 
-          if (reelIdx === 1 && scatterCount >= 2) setTeasing(true);
+          if (ri === 1 && scatCount >= 2) setTeasing(true);
 
-          if (reelIdx === 4) {
+          if (ri === 4) {
             setSpinning(false);
             setTeasing(false);
-            setLignesGagnantes(data.lignesGagnantes);
-            setLastGain(data.gainTotal > 0 ? data.gainTotal : null);
-            setLastMult(data.multiplicateurTotal);
+            setWinLines(d.lignesGagnantes);
+            setLastGain(d.gainTotal > 0 ? d.gainTotal : null);
+            setLastMult(d.multiplicateurTotal);
 
-            if (data.estFreeSpin) {
-              setFreeSpinsRestants(data.spinsRestants ?? 0);
-              setFreeSpinMultiplicateur(data.multiplicateurFreeSpin ?? 1);
-              setFreeSpinsGainTotal(data.gainTotalFreeSpins ?? 0);
-              if (data.freeSpinsTermines) setEnModeFreeSpin(false);
+            if (d.gainTotal > 0 && !d.bigWin && !d.jackpotWin) {
+              setShowCoins(true);
+              setTimeout(() => setShowCoins(false), 3200);
             }
 
-            if (data.jackpotWin) {
-              autoSpinRef.current = false; setAutoSpin(false);
-              setBigWinMontant(data.gainTotal);
-              setBigWinMultiplicateur(9999);
-              setBigWinVisible(true);
+            if (d.estFreeSpin) {
+              setFreeLeft(d.spinsRestants ?? 0);
+              setFreeMult(d.multiplicateurFreeSpin ?? 1);
+              setFreeTotal(d.gainTotalFreeSpins ?? 0);
+              if (d.freeSpinsTermines) setFreeMode(false);
+            }
+
+            if (d.jackpotWin) {
+              autoRef.current = false; setAutoSpin(false);
+              setBigAmount(d.gainTotal); setBigMult(9999); setBigVisible(true);
               return;
             }
-
-            if (data.bigWin && !data.bonus) {
-              autoSpinRef.current = false; setAutoSpin(false);
-              setBigWinMontant(data.gainTotal);
-              setBigWinMultiplicateur(data.multiplicateurTotal);
-              setBigWinVisible(true);
+            if (d.bigWin && !d.bonus) {
+              autoRef.current = false; setAutoSpin(false);
+              setBigAmount(d.gainTotal); setBigMult(d.multiplicateurTotal); setBigVisible(true);
             }
-
-            // Auto-spin : relance si actif, pas de bonus, solde suffisant
-            if (autoSpinRef.current && !data.bonus && !data.bigWin && !data.jackpotWin) {
-              const nextBalance = data.newBalance;
-              if (!enModeFreeSpin && nextBalance < mise) {
-                autoSpinRef.current = false; setAutoSpin(false);
-              } else {
-                setTimeout(() => { if (autoSpinRef.current) handleSpin(); }, 600);
-              }
+            if (autoRef.current && !d.bonus && !d.bigWin && !d.jackpotWin) {
+              if (!freeMode && d.newBalance < mise) { autoRef.current = false; setAutoSpin(false); }
+              else setTimeout(() => { if (autoRef.current) handleSpin(); }, 620);
             }
-
-            if (data.bonus) {
-              autoSpinRef.current = false; setAutoSpin(false);
-              if (data.bonus.type === 'FREE_SPINS') {
-                setEnModeFreeSpin(true);
-                setFreeSpinsRestants(data.bonus.freespins ?? 10);
-                setFreeSpinMultiplicateur(1);
-                setFreeSpinsGainTotal(0);
-              } else if (data.bonus.type === 'WHEEL_OF_FORTUNE') {
-                setWheelMise(mise);
-                setWheelResult(null);
-                setShowWheel(true);
+            if (d.bonus) {
+              autoRef.current = false; setAutoSpin(false);
+              if (d.bonus.type === 'FREE_SPINS') {
+                setFreeMode(true); setFreeLeft(d.bonus.freespins ?? 10); setFreeMult(1); setFreeTotal(0);
+              } else if (d.bonus.type === 'WHEEL_OF_FORTUNE') {
+                setWheelMise(mise); setWheelRes(null); setShowWheel(true);
                 setTimeout(() => {
                   api.post('/games/slots/bonus/wheel', { amount: mise })
-                    .then(r => {
-                      const wr: WheelResult = r.data;
-                      setWheelResult(wr);
-                      updateUser({ balance: wr.newBalance });
-                    }).catch(() => {});
+                    .then(r => { setWheelRes(r.data); updateUser({ balance: r.data.newBalance }); })
+                    .catch(() => {});
                 }, 800);
-              } else if (data.bonus.type === 'CHEST_GAME') {
+              } else if (d.bonus.type === 'CHEST_GAME') {
                 setChestData({
                   coffres: Array.from({ length: 12 }, () => ({ estAlarme: false, valeur: 0, item: null, revele: false })),
-                  gainTotal: 0,
-                  itemsObtenus: [],
-                  mise,
-                  termine: false,
+                  gainTotal: 0, itemsObtenus: [], mise, termine: false,
                 });
                 setShowChest(true);
               }
             }
           }
         }, delay);
-        timerRefs.current.push(t);
+        timers.current.push(t);
       });
     } catch {
       setSpinning(false);
-      setStoppedReels([true, true, true, true, true]);
+      setStopped([true,true,true,true,true]);
     }
-  }, [spinning, user, enModeFreeSpin, mise, updateUser]);
+  }, [spinning, user, freeMode, mise, updateUser]);
 
-  const handleOpenChest = useCallback(async (indexCoffre: number) => {
+  const handleChest = useCallback(async (idx: number) => {
     try {
-      const res = await api.post('/games/slots/bonus/chest', { indexCoffre });
-      const data: ChestResult = res.data;
-      updateUser({ balance: data.newBalance });
+      const res = await api.post('/games/slots/bonus/chest', { indexCoffre: idx });
+      const d: ChestResult = res.data;
+      updateUser({ balance: d.newBalance });
       setChestData(prev => ({
-        coffres: data.coffres,
-        gainTotal: data.gainTotal,
-        itemsObtenus: data.itemCree
-          ? [...(prev?.itemsObtenus ?? []), data.itemCree.type]
-          : prev?.itemsObtenus ?? [],
-        mise: prev?.mise ?? mise,
-        termine: data.termine,
+        coffres: d.coffres, gainTotal: d.gainTotal,
+        itemsObtenus: d.itemCree ? [...(prev?.itemsObtenus ?? []), d.itemCree.type] : prev?.itemsObtenus ?? [],
+        mise: prev?.mise ?? mise, termine: d.termine,
       }));
     } catch {}
   }, [mise, updateUser]);
 
-  const allStopped = stoppedReels.every(Boolean);
+  const allStopped = stopped.every(Boolean);
+  const tier = winTier(lastMult);
 
   return (
-    <div className="min-h-screen bg-casino-dark text-white">
+    <div className="min-h-screen text-white" style={{ background: 'radial-gradient(ellipse at 50% 0%,#100020 0%,#05000f 50%,#020008 100%)' }}>
       <Navbar />
-      <div className="max-w-lg mx-auto px-3 pt-20 pb-8 flex flex-col gap-4">
 
-        {/* Titre + Jackpot */}
-        <div className="text-center">
-          <h1 className="text-2xl font-black text-casino-gold tracking-wide">🎰 Vegas Evolution</h1>
-          <motion.div
-            animate={{ scale: [1, 1.04, 1] }}
-            transition={{ duration: 1.6, repeat: Infinity }}
-            className="mt-1 text-xs font-bold"
-            style={{ color: '#fbbf24', textShadow: '0 0 14px rgba(245,158,11,0.9)' }}
-          >
-            JACKPOT PROGRESSIF : {jackpot.toLocaleString('fr-FR')} F€ 🏆
-          </motion.div>
-        </div>
+      {/* Inject CSS animations */}
+      <style>{`
+        @keyframes slot-coin {
+          0%   { transform:translateY(0) rotate(0deg) scale(1);opacity:1; }
+          100% { transform:translateY(110vh) rotate(720deg) scale(0.4);opacity:0; }
+        }
+        @keyframes slot-neon {
+          0%,100%{ opacity:1; }
+          50%    { opacity:0.3; }
+        }
+        @keyframes slot-jackpot {
+          0%,100%{ text-shadow:0 0 12px #f59e0b,0 0 25px #f59e0b80; }
+          50%    { text-shadow:0 0 25px #fbbf24,0 0 50px #f59e0b,0 0 80px #f59e0b40; }
+        }
+        @keyframes slot-marquee {
+          0%  { transform:translateX(100%); }
+          100%{ transform:translateX(-130%); }
+        }
+        @keyframes slot-free {
+          0%,100%{ box-shadow:0 0 18px rgba(99,102,241,0.4),inset 0 0 25px rgba(99,102,241,0.08); }
+          50%    { box-shadow:0 0 38px rgba(99,102,241,0.7),inset 0 0 45px rgba(99,102,241,0.15); }
+        }
+        @keyframes slot-btn-idle {
+          0%,100%{ box-shadow:0 0 28px rgba(245,158,11,0.45),0 8px 20px rgba(0,0,0,0.5); }
+          50%    { box-shadow:0 0 50px rgba(245,158,11,0.75),0 8px 20px rgba(0,0,0,0.5); }
+        }
+        @keyframes slot-win-pop {
+          0%  { transform:scale(0.5)rotate(-6deg);opacity:0; }
+          65% { transform:scale(1.18)rotate(2deg);opacity:1; }
+          100%{ transform:scale(1)rotate(0); }
+        }
+        @keyframes slot-rotate {
+          from{ transform:rotate(0deg); }
+          to  { transform:rotate(360deg); }
+        }
+      `}</style>
 
-        {/* Bandeau Free Spins */}
-        <AnimatePresence>
-          {enModeFreeSpin && (
-            <motion.div
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              className="rounded-xl p-3 text-center"
-              style={{ background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)', border: '2px solid #60a5fa' }}
-            >
-              <div className="text-blue-200 text-xs uppercase tracking-widest font-bold">Free Spins</div>
-              <div className="text-3xl font-black text-white">{freeSpinsRestants} restants</div>
-              <div className="flex justify-center gap-6 mt-1 text-sm">
-                <span className="text-yellow-300 font-bold">×{freeSpinMultiplicateur.toFixed(1)}</span>
-                <span className="text-green-400 font-bold">+{freeSpinsGainTotal.toLocaleString('fr-FR')} F€</span>
+      <div className="max-w-5xl mx-auto px-3 pt-16 pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_268px] gap-4 items-start">
+
+          {/* ── SLOT MACHINE CABINET ──────────────────────────────────────── */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-full max-w-[560px] rounded-3xl overflow-hidden"
+              style={{
+                background: 'linear-gradient(180deg,#1c0a35 0%,#0e0420 45%,#060210 100%)',
+                border: '2px solid rgba(245,158,11,0.32)',
+                boxShadow: '0 0 70px rgba(139,92,246,0.12),0 0 40px rgba(245,158,11,0.08),0 30px 80px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.1)',
+              }}>
+
+              {/* ── Marquee header ──────────────────────────────────────── */}
+              <div style={{
+                background: 'linear-gradient(180deg,#120830 0%,#1c0f40 100%)',
+                borderBottom: '2px solid rgba(245,158,11,0.28)',
+                padding: '10px 16px 8px',
+              }}>
+                <div className="flex justify-center mb-2"><NeonStrip dir="row" /></div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[9px] font-black tracking-[0.35em] uppercase" style={{ color: 'rgba(245,158,11,0.5)' }}>Casino</div>
+                    <div className="text-[26px] font-black leading-none"
+                      style={{ background: 'linear-gradient(135deg,#fef3c7,#f59e0b,#d97706)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '0.04em' }}>
+                      EVOLUTION
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[9px] font-bold tracking-widest" style={{ color: 'rgba(251,191,36,0.55)' }}>⚡ JACKPOT</div>
+                    <div className="text-xl font-black tabular-nums"
+                      style={{ color: '#fbbf24', animation: 'slot-jackpot 1.8s ease-in-out infinite' }}>
+                      {jackpot.toLocaleString('fr-FR')} F€
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[9px] font-bold" style={{ color: 'rgba(245,158,11,0.5)' }}>LIGNES</div>
+                    <div className="text-2xl font-black" style={{ color: '#f59e0b' }}>20</div>
+                  </div>
+                </div>
+
+                {/* Scrolling ticker */}
+                <div className="overflow-hidden h-[18px] mt-1.5 rounded"
+                  style={{ background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(245,158,11,0.12)' }}>
+                  <div className="text-[10px] font-bold whitespace-nowrap h-full flex items-center"
+                    style={{ color: '#f59e0b', animation: 'slot-marquee 16s linear infinite', display: 'inline-flex', paddingLeft: '100%' }}>
+                    🌟 WILD ×5 = JACKPOT &nbsp;•&nbsp; ⭐ 3 SCATTER = BONUS &nbsp;•&nbsp; 💎 DIAMOND ×5 = ×90 &nbsp;•&nbsp; 🎁 FREE SPINS • ROUE DE LA FORTUNE • COFFRES MYSTÈRES &nbsp;•&nbsp;
+                  </div>
+                </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
-        {/* Grille 5×3 */}
-        <div
-          className="rounded-2xl p-4"
-          style={{
-            background: 'linear-gradient(135deg, #1a1630 0%, #0a0a1a 100%)',
-            border: '2px solid rgba(245,158,11,0.35)',
-            boxShadow: '0 0 40px rgba(245,158,11,0.08), inset 0 0 30px rgba(0,0,0,0.5)',
-          }}
-        >
-          <div className="flex justify-center gap-2">
-            {grille.map((col, reelIdx) => (
-              <Rouleau
-                key={reelIdx}
-                col={col}
-                reelIdx={reelIdx}
-                spinning={spinning}
-                stopped={stoppedReels[reelIdx]}
-                teasing={teasing}
-                lignesGagnantes={allStopped ? lignesGagnantes : []}
-              />
-            ))}
-          </div>
-
-          {/* Résultat — niveau de gain + montant */}
-          <div className="min-h-14 mt-3 flex flex-col items-center justify-center gap-1">
-            <AnimatePresence mode="wait">
-              {allStopped && lastGain !== null && lastGain > 0 && (() => {
-                const tier = getWinTier(lastMult);
-                return (
-                  <motion.div
-                    key={`gain-${lastGain}`}
-                    initial={{ opacity: 0, scale: 0.7, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ type: 'spring', stiffness: 280 }}
-                    className="flex flex-col items-center gap-0.5"
-                  >
-                    {tier && (
-                      <div
-                        className="text-xs font-black tracking-widest px-3 py-0.5 rounded-full"
-                        style={{
-                          background: `${tier.couleur}22`,
-                          color: tier.couleur,
-                          border: `1px solid ${tier.couleur}`,
-                          textShadow: `0 0 8px ${tier.couleur}`,
-                        }}
-                      >
-                        {tier.label}
+              {/* ── Free spin banner ────────────────────────────────────── */}
+              <AnimatePresence>
+                {freeMode && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
+                    <div className="px-4 py-2.5 flex items-center justify-between"
+                      style={{
+                        background: 'linear-gradient(90deg,#1d4ed8,#7c3aed,#1d4ed8)',
+                        borderBottom: '2px solid rgba(99,102,241,0.45)',
+                        animation: 'slot-free 1.5s ease-in-out infinite',
+                      }}>
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-blue-200">🎁 Free Spins</div>
+                        <div className="text-2xl font-black text-white">{freeLeft} <span className="text-sm font-normal text-blue-300">restants</span></div>
                       </div>
-                    )}
-                    <motion.div
-                      animate={{ scale: [1, 1.06, 1] }}
-                      transition={{ duration: 0.8, repeat: 3 }}
-                      className="text-2xl font-black text-green-400"
-                      style={{ textShadow: '0 0 12px rgba(74,222,128,0.7)' }}
-                    >
-                      +{formatBalance(lastGain)}
-                    </motion.div>
-                    <div className="text-xs text-gray-500">
-                      ×{lastMult.toFixed(1)} — {lignesGagnantes.length} ligne{lignesGagnantes.length > 1 ? 's' : ''}
+                      <div className="text-center">
+                        <div className="text-[10px] font-bold text-purple-200">Multiplicateur</div>
+                        <div className="text-xl font-black text-yellow-300">×{freeMult.toFixed(1)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] font-bold text-blue-200">Gains cumulés</div>
+                        <div className="text-lg font-black text-green-300">+{freeTotal.toLocaleString('fr-FR')} F€</div>
+                      </div>
                     </div>
                   </motion.div>
-                );
-              })()}
-              {allStopped && (lastGain === null || lastGain === 0) && !spinning && (
-                <motion.div
-                  key="noop"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-gray-600 text-xs"
-                >
-                  Bonne chance au prochain spin !
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
+                )}
+              </AnimatePresence>
 
-        {/* Sélecteur de mise (masqué en free spin) */}
-        {!enModeFreeSpin && (
-          <div className="grid grid-cols-4 gap-2">
-            {MISES_PRESETS.map(m => (
-              <button
-                key={m}
-                onClick={() => !spinning && setMise(m)}
-                disabled={spinning}
-                className="py-2 rounded-lg text-sm font-bold transition-all"
-                style={{
-                  background: mise === m
-                    ? 'linear-gradient(135deg, #d97706, #f59e0b)'
-                    : 'rgba(30,27,75,0.7)',
-                  color: mise === m ? '#000' : '#9ca3af',
-                  border: mise === m ? '2px solid #fbbf24' : '1px solid rgba(245,158,11,0.15)',
-                  boxShadow: mise === m ? '0 0 14px rgba(245,158,11,0.45)' : 'none',
-                }}
-              >
-                {m} F€
-              </button>
-            ))}
-          </div>
-        )}
+              {/* ── Reel grid ───────────────────────────────────────────── */}
+              <div className="px-3 pt-3 pb-2">
+                <div className="flex items-stretch gap-2">
+                  {/* Left neon */}
+                  <div className="flex-shrink-0 flex items-center"><NeonStrip dir="col" /></div>
 
-        {/* Bouton SPIN */}
-        <motion.button
-          whileTap={!spinning ? { scale: 0.96 } : {}}
-          onClick={handleSpin}
-          disabled={spinning || (!enModeFreeSpin && (user?.balance ?? 0) < mise)}
-          className="w-full py-4 rounded-2xl text-xl font-black transition-all"
-          style={{
-            background: spinning
-              ? 'rgba(20,20,40,0.8)'
-              : enModeFreeSpin
-              ? 'linear-gradient(135deg, #1d4ed8, #7c3aed)'
-              : 'linear-gradient(135deg, #b45309, #f59e0b, #b45309)',
-            color: spinning ? '#4b5563' : '#000',
-            boxShadow: spinning ? 'none' : enModeFreeSpin ? '0 0 24px rgba(99,102,241,0.6)' : '0 0 28px rgba(245,158,11,0.55)',
-            cursor: spinning ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {spinning ? (
-            <span className="flex items-center justify-center gap-2">
-              <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.5, repeat: Infinity, ease: 'linear' }}>⚙️</motion.span>
-              Rotation en cours...
-            </span>
-          ) : enModeFreeSpin ? (
-            `🎁 SPIN GRATUIT — ${freeSpinsRestants} restants`
-          ) : (
-            `▶ SPIN — ${formatBalance(mise)}`
-          )}
-        </motion.button>
+                  {/* Grid window */}
+                  <div className="flex-1 relative rounded-2xl overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(180deg,#03000c,#08001a)',
+                      border: '2px solid rgba(245,158,11,0.22)',
+                      boxShadow: 'inset 0 0 50px rgba(0,0,0,0.7), inset 0 0 1px rgba(255,255,255,0.04)',
+                      padding: '8px',
+                    }}>
 
-        {/* Auto-spin + Solde */}
-        <div className="flex items-center justify-between px-1">
-          <div className="text-sm text-gray-400">
-            Solde : <span className="text-casino-gold font-bold">{formatBalance(user?.balance ?? 0)}</span>
-          </div>
-          <button
-            onClick={() => {
-              const next = !autoSpin;
-              autoSpinRef.current = next;
-              setAutoSpin(next);
-              if (next && !spinning) handleSpin();
-            }}
-            disabled={!enModeFreeSpin && (user?.balance ?? 0) < mise}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all"
-            style={{
-              background: autoSpin ? 'linear-gradient(135deg,#16a34a,#15803d)' : 'rgba(30,27,75,0.8)',
-              color: autoSpin ? '#fff' : '#6b7280',
-              border: autoSpin ? '1px solid #22c55e' : '1px solid rgba(245,158,11,0.2)',
-              boxShadow: autoSpin ? '0 0 12px rgba(34,197,94,0.4)' : 'none',
-            }}
-          >
-            <span style={{ display: 'inline-block', animation: autoSpin ? 'spin 1s linear infinite' : 'none' }}>⚙️</span>
-            {autoSpin ? 'AUTO ON' : 'AUTO'}
-          </button>
-        </div>
+                    <CoinRain active={showCoins} />
 
-        {/* Paytable */}
-        <details className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(245,158,11,0.18)' }}>
-          <summary className="px-4 py-2.5 cursor-pointer text-sm text-gray-400 bg-casino-darker hover:text-casino-gold transition-colors select-none">
-            📋 Tableau des gains — 20 lignes de paiement
-          </summary>
-          <div className="px-4 py-3 bg-casino-darker grid grid-cols-2 gap-2 text-xs text-gray-300">
-            {[
-              { sym: 'WILD',    label: '🌟 Wild',    pays: '×15 / ×50 / ×200' },
-              { sym: 'DIAMOND', label: '💎 Diamond', pays: '×8 / ×30 / ×90'   },
-              { sym: 'CROWN',   label: '👑 Crown',   pays: '×3 / ×12 / ×35'   },
-              { sym: 'ACE',     label: '🅰️ As',      pays: '×1.2 / ×4 / ×12'  },
-              { sym: 'KING',    label: '♚ Roi',      pays: '×0.9 / ×2.5 / ×7' },
-              { sym: 'QUEEN',   label: '♛ Dame',     pays: '×0.7 / ×2 / ×5'   },
-              { sym: 'JACK',    label: '🎴 Valet',   pays: '×0.5 / ×1.5 / ×3' },
-              { sym: 'TEN',     label: '🔟 10',      pays: '×0.4 / ×1.2 / ×2.5' },
-            ].map(({ label, pays }) => (
-              <div key={label} className="flex flex-col">
-                <span className="text-white font-semibold">{label}</span>
-                <span className="text-gray-500">{pays}</span>
+                    {/* Glass top reflection */}
+                    <div className="absolute inset-x-0 top-0 h-1/3 pointer-events-none rounded-t-xl"
+                      style={{ background: 'linear-gradient(180deg,rgba(255,255,255,0.05),transparent)', zIndex: 25 }} />
+
+                    {/* Payline overlay (relative wrapper to get correct %) */}
+                    <div className="relative">
+                      <PaylineOverlay lines={allStopped ? winLines : []} visible={allStopped} />
+
+                      {/* 5 reels */}
+                      <div className="flex justify-center gap-1.5">
+                        {grid.map((col, ri) => (
+                          <Reel key={ri}
+                            symbols={col} reelIdx={ri}
+                            spinning={spinning} stopped={stopped[ri]}
+                            teasing={teasing}
+                            winLines={allStopped ? winLines : []}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Glass bottom glow */}
+                    <div className="absolute inset-x-0 bottom-0 h-1/5 pointer-events-none"
+                      style={{ background: 'linear-gradient(0deg,rgba(245,158,11,0.05),transparent)', zIndex: 25 }} />
+                  </div>
+
+                  {/* Right neon */}
+                  <div className="flex-shrink-0 flex items-center"><NeonStrip dir="col" /></div>
+                </div>
+
+                {/* Win result */}
+                <div className="min-h-[44px] flex items-center justify-center mt-2">
+                  <AnimatePresence mode="wait">
+                    {allStopped && lastGain !== null && lastGain > 0 && (
+                      <motion.div key={lastGain}
+                        initial={{ opacity: 0, y: 8, scale: 0.75 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ type: 'spring', stiffness: 320 }}
+                        className="flex items-center gap-2.5"
+                        style={{ animation: 'slot-win-pop 0.4s ease-out' }}
+                      >
+                        {tier && (
+                          <span className="text-[11px] font-black tracking-widest px-3 py-0.5 rounded-full"
+                            style={{
+                              background: `${tier.color}1a`, color: tier.color,
+                              border: `1px solid ${tier.color}`, textShadow: `0 0 10px ${tier.color}`,
+                            }}>
+                            {tier.label}
+                          </span>
+                        )}
+                        <span className="text-2xl font-black text-green-400"
+                          style={{ textShadow: '0 0 14px rgba(74,222,128,0.8)' }}>
+                          +{formatBalance(lastGain)}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          ×{lastMult.toFixed(1)} — {winLines.length}L
+                        </span>
+                      </motion.div>
+                    )}
+                    {allStopped && !spinning && (lastGain === null || lastGain === 0) && (
+                      <motion.p key="noop"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="text-xs text-gray-700">
+                        Bonne chance au prochain spin !
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
-            ))}
-            <div className="col-span-2 pt-2 border-t border-gray-700 space-y-1">
-              <div className="text-yellow-400">⭐ 3+ Scatters = Bonus (Free Spins / Roue / Coffres)</div>
-              <div className="text-yellow-300">🌟×5 ligne centrale = JACKPOT PROGRESSIF</div>
-              <div className="text-gray-600">WILD substitue tous les symboles sauf Scatter</div>
+
+              {/* ── Controls ────────────────────────────────────────────── */}
+              <div className="px-4 pb-5 space-y-3" style={{ borderTop: '1px solid rgba(245,158,11,0.12)' }}>
+
+                {/* Bet chips */}
+                {!freeMode && (
+                  <div className="pt-3">
+                    <div className="text-[9px] font-black tracking-[0.3em] text-center mb-2"
+                      style={{ color: 'rgba(245,158,11,0.45)' }}>MISE PAR SPIN</div>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {MISES.map(m => (
+                        <button key={m}
+                          onClick={() => !spinning && setMise(m)}
+                          disabled={spinning}
+                          className="py-2 rounded-xl text-xs font-black transition-all disabled:opacity-40"
+                          style={{
+                            background: mise === m ? 'linear-gradient(135deg,#92400e,#d97706,#f59e0b)' : 'rgba(255,255,255,0.04)',
+                            color: mise === m ? '#000' : '#6b7280',
+                            border: mise === m ? '1px solid #fbbf24' : '1px solid rgba(255,255,255,0.06)',
+                            boxShadow: mise === m ? '0 0 14px rgba(245,158,11,0.5)' : 'none',
+                            transform: mise === m ? 'scale(1.04)' : undefined,
+                          }}>
+                          {m >= 1000 ? `${m/1000}K` : m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Spin row */}
+                <div className="flex items-center gap-3">
+                  {/* Auto toggle */}
+                  <button
+                    onClick={() => {
+                      const next = !autoSpin;
+                      autoRef.current = next;
+                      setAutoSpin(next);
+                      if (next && !spinning) handleSpin();
+                    }}
+                    disabled={!freeMode && (user?.balance ?? 0) < mise}
+                    className="flex-shrink-0 flex flex-col items-center px-3 py-2 rounded-xl text-[10px] font-black transition-all gap-0.5"
+                    style={{
+                      background: autoSpin ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)',
+                      color: autoSpin ? '#22c55e' : '#4b5563',
+                      border: autoSpin ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(255,255,255,0.06)',
+                      boxShadow: autoSpin ? '0 0 12px rgba(34,197,94,0.25)' : 'none',
+                    }}>
+                    <span style={{ display: 'inline-block', animation: autoSpin ? 'slot-rotate 1s linear infinite' : 'none', fontSize: 16 }}>⚙️</span>
+                    AUTO
+                  </button>
+
+                  {/* SPIN button */}
+                  <motion.button
+                    whileTap={!spinning ? { scale: 0.93 } : {}}
+                    onClick={handleSpin}
+                    disabled={spinning || (!freeMode && (user?.balance ?? 0) < mise)}
+                    className="flex-1 py-4 rounded-2xl text-lg font-black disabled:cursor-not-allowed"
+                    style={{
+                      background: spinning
+                        ? 'rgba(15,5,30,0.9)'
+                        : freeMode
+                        ? 'linear-gradient(135deg,#1d4ed8,#7c3aed)'
+                        : 'linear-gradient(135deg,#78350f,#b45309,#f59e0b,#b45309,#78350f)',
+                      color: spinning ? '#2d2d3a' : '#000',
+                      boxShadow: spinning ? 'none' : freeMode
+                        ? '0 0 30px rgba(99,102,241,0.55), 0 8px 22px rgba(0,0,0,0.5)'
+                        : undefined,
+                      animation: !spinning && !freeMode ? 'slot-btn-idle 2.2s ease-in-out infinite' : 'none',
+                      border: spinning ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                    }}>
+                    {spinning ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span style={{ display: 'inline-block', animation: 'slot-rotate 0.5s linear infinite' }}>⚙️</span>
+                        Rotation en cours…
+                      </span>
+                    ) : freeMode ? `🎁 FREE SPIN — ${freeLeft} restants`
+                    : `▶ SPIN — ${formatBalance(mise)}`}
+                  </motion.button>
+
+                  {/* Balance */}
+                  <div className="flex-shrink-0 text-right min-w-[60px]">
+                    <div className="text-[9px] font-bold" style={{ color: 'rgba(245,158,11,0.45)' }}>SOLDE</div>
+                    <div className="text-sm font-black" style={{ color: '#f59e0b' }}>
+                      {formatBalance(user?.balance ?? 0)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Paytable accordion ─────────────────────────────────────── */}
+            <div className="w-full max-w-[560px] rounded-2xl overflow-hidden"
+              style={{ background: 'rgba(8,2,18,0.85)', border: '1px solid rgba(245,158,11,0.13)' }}>
+              <details>
+                <summary className="px-4 py-2.5 cursor-pointer text-sm font-bold select-none flex items-center justify-between"
+                  style={{ color: 'rgba(245,158,11,0.65)' }}>
+                  <span>📋 Tableau des gains — 20 lignes actives</span>
+                  <span className="text-xs opacity-50">▼</span>
+                </summary>
+                <div className="px-4 pb-4">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                    {([
+                      { sym: 'WILD',    pays: '×15 / ×50 / ×200',   note: 'Remplace tout' },
+                      { sym: 'SCATTER', pays: '3+ = BONUS GARANTI',  note: 'Free Spins/Roue/Coffres' },
+                      { sym: 'DIAMOND', pays: '×8 / ×30 / ×90'   },
+                      { sym: 'CROWN',   pays: '×3 / ×12 / ×35'   },
+                      { sym: 'ACE',     pays: '×1.2 / ×4 / ×12'  },
+                      { sym: 'KING',    pays: '×0.9 / ×2.5 / ×7' },
+                      { sym: 'QUEEN',   pays: '×0.7 / ×2 / ×5'   },
+                      { sym: 'JACK',    pays: '×0.5 / ×1.5 / ×3' },
+                      { sym: 'TEN',     pays: '×0.4 / ×1.2 / ×2.5' },
+                    ] as { sym: string; pays: string; note?: string }[]).map(({ sym, pays, note }) => {
+                      const d = SYMS[sym];
+                      return (
+                        <div key={sym} className="flex items-center gap-2">
+                          <span className="text-xl">{d?.emoji}</span>
+                          <div>
+                            <div className="font-bold text-white text-[11px]">{d?.label}</div>
+                            <div className="text-[10px]" style={{ color: d?.glow }}>{pays}</div>
+                            {note && <div className="text-[9px] text-gray-600">{note}</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 pt-2.5 border-t border-white/5 space-y-1 text-[10px]">
+                    <div className="text-yellow-400">🌟 WILD ×5 ligne centrale = JACKPOT PROGRESSIF</div>
+                    <div className="text-gray-500">Gains calculés sur 3, 4 ou 5 symboles identiques</div>
+                  </div>
+                </div>
+              </details>
             </div>
           </div>
-        </details>
+
+          {/* ── Right panel: paylines + details ───────────────────────────── */}
+          <div className="hidden lg:flex flex-col gap-3">
+
+            {/* Active paylines grid */}
+            <div className="rounded-2xl p-3"
+              style={{ background: 'rgba(8,2,18,0.85)', border: '1px solid rgba(245,158,11,0.13)' }}>
+              <div className="text-[9px] font-black tracking-widest mb-2.5"
+                style={{ color: 'rgba(245,158,11,0.55)' }}>LIGNES ACTIVES</div>
+              <div className="grid grid-cols-4 gap-1">
+                {PAYLINES.map((_, i) => {
+                  const w = winLines.some(l => l.indexLigne === i);
+                  return (
+                    <div key={i} className="text-center text-[10px] font-black rounded-lg py-1"
+                      style={{
+                        background: w ? `${LINE_COLORS[i]}20` : 'rgba(255,255,255,0.03)',
+                        color: w ? LINE_COLORS[i] : 'rgba(255,255,255,0.18)',
+                        border: w ? `1px solid ${LINE_COLORS[i]}50` : '1px solid transparent',
+                        boxShadow: w ? `0 0 8px ${LINE_COLORS[i]}40` : 'none',
+                        transition: 'all 0.3s',
+                      }}>
+                      {i + 1}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Last spin breakdown */}
+            <div className="rounded-2xl p-3"
+              style={{ background: 'rgba(8,2,18,0.85)', border: `1px solid ${lastGain && lastGain > 0 ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)'}` }}>
+              <div className="text-[9px] font-black tracking-widest mb-2"
+                style={{ color: lastGain && lastGain > 0 ? 'rgba(34,197,94,0.6)' : 'rgba(255,255,255,0.2)' }}>
+                DERNIER RÉSULTAT
+              </div>
+              {lastGain !== null && lastGain > 0 ? (
+                <div className="space-y-1.5">
+                  <div className="text-green-400 font-black text-xl">+{formatBalance(lastGain)}</div>
+                  <div className="text-xs text-gray-400">×{lastMult.toFixed(2)} multiplicateur</div>
+                  <div className="text-xs text-gray-500">{winLines.length} ligne{winLines.length > 1 ? 's' : ''} gagnante{winLines.length > 1 ? 's' : ''}</div>
+                  <div className="space-y-1 pt-1 border-t border-white/5">
+                    {winLines.map((l, i) => (
+                      <div key={i} className="flex items-center gap-1.5 text-[10px]">
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: LINE_COLORS[i % LINE_COLORS.length] }} />
+                        <span style={{ color: LINE_COLORS[i % LINE_COLORS.length] }}>L{l.indexLigne + 1}</span>
+                        <span className="text-gray-400">{SYMS[l.symbole]?.emoji} {l.count}× &nbsp;×{l.multiplicateur}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-gray-700 text-xs">Aucun gain ce spin</div>
+              )}
+            </div>
+
+            {/* Symbol legend */}
+            <div className="rounded-2xl p-3"
+              style={{ background: 'rgba(8,2,18,0.85)', border: '1px solid rgba(245,158,11,0.13)' }}>
+              <div className="text-[9px] font-black tracking-widest mb-2.5" style={{ color: 'rgba(245,158,11,0.55)' }}>
+                SYMBOLES
+              </div>
+              <div className="space-y-1.5">
+                {Object.entries(SYMS).reverse().map(([key, d]) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="text-lg leading-none">{d.emoji}</span>
+                    <span className="text-[10px] font-bold" style={{ color: d.glow }}>{d.label}</span>
+                    <div className="flex-1 h-px rounded" style={{ background: `linear-gradient(90deg,${d.glow}50,transparent)` }} />
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: d.tier }, (_, i) => (
+                        <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: d.glow }} />
+                      ))}
+                      {Array.from({ length: 5 - d.tier }, (_, i) => (
+                        <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Jackpot live */}
+            <div className="rounded-2xl p-3 text-center"
+              style={{ background: 'rgba(8,2,18,0.85)', border: '1px solid rgba(245,158,11,0.13)' }}>
+              <div className="text-[9px] font-black tracking-widest mb-1" style={{ color: 'rgba(251,191,36,0.5)' }}>JACKPOT PROGRESSIF</div>
+              <div className="text-2xl font-black tabular-nums"
+                style={{ color: '#fbbf24', animation: 'slot-jackpot 1.8s ease-in-out infinite' }}>
+                {jackpot.toLocaleString('fr-FR')} F€
+              </div>
+              <div className="text-[9px] text-gray-600 mt-1">🌟 WILD ×5 sur la ligne centrale</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Overlays */}
-      <BigWinOverlay
-        visible={bigWinVisible}
-        montant={bigWinMontant}
-        multiplicateur={bigWinMultiplicateur}
-        onClose={() => setBigWinVisible(false)}
-      />
+      {/* ── Bonus overlays ──────────────────────────────────────────────────── */}
+      <BigWinOverlay visible={bigVisible} montant={bigAmount} multiplicateur={bigMult} onClose={() => setBigVisible(false)} />
 
       {showWheel && (
         <WheelOfFortune
           mise={wheelMise}
-          multiplicateur={wheelResult?.multiplicateur ?? null}
-          gain={wheelResult?.gain ?? 0}
-          onClose={() => { setShowWheel(false); setWheelResult(null); }}
+          multiplicateur={wheelRes?.multiplicateur ?? null}
+          gain={wheelRes?.gain ?? 0}
+          onClose={() => { setShowWheel(false); setWheelRes(null); }}
         />
       )}
 
@@ -636,7 +886,7 @@ export default function SlotsPage() {
           itemsObtenus={chestData.itemsObtenus}
           mise={chestData.mise}
           termine={chestData.termine}
-          onPick={handleOpenChest}
+          onPick={handleChest}
           onClose={() => { setShowChest(false); setChestData(null); }}
         />
       )}
