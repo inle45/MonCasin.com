@@ -91,7 +91,7 @@ function ParticleOrbs() {
   return (
     <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
       {orbs.map((o, i) => (
-        <div key={i} style={{ position: 'absolute', width: o.s, height: o.s, borderRadius: '50%', background: `radial-gradient(circle, ${o.c} 0%, transparent 70%)`, left: `${o.x}%`, top: `${o.y}%`, transform: 'translate(-50%,-50%)', animation: `db-orb ${o.d}s ease-in-out ${i * 3}s infinite alternate`, filter: 'blur(2px)' }} />
+        <div className="db-orb" key={i} style={{ position: 'absolute', width: o.s, height: o.s, borderRadius: '50%', background: `radial-gradient(circle, ${o.c} 0%, transparent 70%)`, left: `${o.x}%`, top: `${o.y}%`, transform: 'translate(-50%,-50%)', animation: `db-orb ${o.d}s ease-in-out ${i * 3}s infinite alternate`, willChange: 'transform' }} />
       ))}
     </div>
   );
@@ -133,7 +133,7 @@ function HeroSection({ user, jackpot, happyHour }: {
   const streak = user.streak ?? 0;
 
   return (
-    <div style={{ position: 'relative', background: 'linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: 20, backdropFilter: 'blur(20px)', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', background: 'linear-gradient(135deg,rgba(18,18,32,0.97),rgba(12,12,24,0.98))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: 20, overflow: 'hidden' }}>
       {/* bg glow */}
       <div style={{ position: 'absolute', top: -60, left: -60, width: 240, height: 240, borderRadius: '50%', background: `radial-gradient(circle,${gradeData.glow},transparent 70%)`, pointerEvents: 'none' }} />
 
@@ -142,7 +142,7 @@ function HeroSection({ user, jackpot, happyHour }: {
 
         {/* Avatar */}
         <div style={{ position: 'relative', flexShrink: 0 }} className="db-avatar-wrap">
-          <div style={{ position: 'absolute', inset: -4, borderRadius: '50%', background: `conic-gradient(${gradeData.ring},transparent 30%,${gradeData.ring})`, animation: 'db-ring 3s linear infinite', filter: `blur(1px) drop-shadow(0 0 8px ${gradeData.color})` }} />
+          <div style={{ position: 'absolute', inset: -4, borderRadius: '50%', background: `conic-gradient(${gradeData.ring},transparent 30%,${gradeData.ring})`, animation: 'db-ring 3s linear infinite', willChange: 'transform', boxShadow: `0 0 10px ${gradeData.color}88` }} />
           <img src={getAvatarUrl(user.avatar)} alt={user.pseudo}
             style={{ width: 80, height: 80, borderRadius: '50%', border: '3px solid rgba(0,0,0,0.6)', position: 'relative', zIndex: 1, boxShadow: `0 0 20px ${gradeData.glow}` }}
             onError={e => { (e.target as HTMLImageElement).src = '/avatars/default-1.svg'; }} />
@@ -365,6 +365,8 @@ export default function DashboardPage() {
         flex-direction: column;
         gap: 14px;
       }
+      /* Performance: hide orbs on mobile, they only cost GPU */
+      @media (max-width: 767px) { .db-orb { display: none !important; } }
       /* Keyframes */
       @keyframes db-orb {
         from { transform: translate(-50%,-50%) scale(1); }
